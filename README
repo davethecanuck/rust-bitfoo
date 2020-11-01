@@ -1,0 +1,35 @@
+- Add std::ops operator overloading to each box type
+- Add trait method to find size of the box in bytes
+- Use OffsetTree and RunTree instead of arrays
+    - This is more efficient for duplicate detection
+      and for binary search to find a node
+    - MapTree could also be used for bit maps for 
+     improved space efficiency (e.g. if only
+     bit 4,000,000,000 is set). Might have internal 
+     chunking of 2^8 bits. Possibly need to switch
+     from MapTree to MapArray when number of bits
+     exceeds a threshold. Perhaps make a top-level
+     box type, though might be redundant if the
+     array type is used.
+- Create macro as: bitfoo![5, 98000, 42] to create
+  a vector with the given bits set
+- Top level vector class should use tree of nodes/boxes
+  for space efficiency, but switch to array of nodes 
+  after a certain threshold is hit (similar to the 
+  switch between box/node types). E.g. ArrayVec, TreeVec
+
+Box types
+---------
+- trait bitfoo::BitFooNode
+    - bitfoo::MapNode      // Array[u64] of bits - offsets imply bitno
+    - bitfoo::OffsetNode   // BTree[u16] of offsets
+    - bitfoo::RunNode      // BTree[(u16,u16)] of run(offset,length)
+    - bitfoo::OneNode      // No data - implies 2^16 1's
+    - bitfoo::ZeroNode     // No data - implies 2^16 0's
+
+Vector types
+------------
+- trait bitfoo::BitFooVec
+    - bitfoo::ArrayVec     // Array[BitFooNode] - offsets imply upper 2^16 of bitno
+    - bitfoo::TreeVec      // BTree[BitFooNode] - keyed by upper 2^16 of bitno
+

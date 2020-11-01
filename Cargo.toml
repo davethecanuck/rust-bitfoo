@@ -1,5 +1,8 @@
 [package]
 name = "bitfoo"
+description = "Bit vector classes for very large vectors"
+repository = "https://github.com/davethecanuck/rust-bitfoo"
+license = "MIT/Apache-2.0"
 version = "0.1.0"
 authors = ["David Sutherland <davethecanuck@gmail.com>"]
 edition = "2018"

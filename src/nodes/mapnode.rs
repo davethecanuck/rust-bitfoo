@@ -1,25 +1,35 @@
 use std::vec::Vec;
+use crate::traits::BitSetLogic;
 
-mod foobox;
-use foobox::FooBox;
-
-struct BitMapBox {
+pub struct MapNode {
     words: Vec<u64>,
 }
 
-impl BitMapBox {
+impl MapNode {
     // Create with short u64 vector
     pub fn new() -> Self {
-        BitMapBox{ 
+        MapNode{ 
             words: Vec::<u64>::with_capacity(1),
+        }
+    }
+
+    fn location(&self, bitno: u16) -> (u16,u16) {
+        (bitno/16, bitno%16)
+    }
+
+    fn resize(&mut self, wordoff: u16) {
+        // EYE - TBD pre-allocate capacity as per
+        // the roaring growth algo
+        while self.words.len() <= wordoff as usize {
+            self.words.push(0);
         }
     }
 }
 
-impl FooBox for BitMapBox {
+impl BitSetLogic for MapNode {
     // Shrink allocated space 
     fn shrink(&mut self) {
-        self.offsets.shrink_to_fit();
+        self.words.shrink_to_fit();
     }
     
     // Set a bit
@@ -42,7 +52,6 @@ impl FooBox for BitMapBox {
     // Return the boolean value of a bit
     fn get(&self, bitno: u16) -> bool {
         let (wordoff, bitoff) = self.location(bitno);
-
         if self.words.len() <= wordoff as usize {
             false
         }
@@ -50,29 +59,4 @@ impl FooBox for BitMapBox {
             ((self.words[wordoff as usize] >> bitoff) & 1) == 1
         }
     }
-}
-
-fn main() {
-    let mut bm = BitMapBox::new();
-
-    for i in 0..=65 {
-        if i % 3 == 0 {
-            // Set every 3rd bit
-            bm.set(i);
-        }
-        if i % 2 == 0 {
-            // But clear every 2nd bit
-            bm.clear(i);
-        }
-        println!("SETTING: Is {} set ? => {} (len={}, capacity={})", 
-                 i, bm.get(i), bm.words.len(), bm.words.capacity());
-    }
-
-    for i in 0..=128 {
-        println!("CHECKING: {} set ? => {} (len={}, capacity={})", 
-                 i, bm.get(i), bm.words.len(), bm.words.capacity());
-    }
-
-    bm.shrink();
-    println!("AFTER SHRINK: len={}, capacity={}", bm.words.len(), bm.words.capacity());
 }
