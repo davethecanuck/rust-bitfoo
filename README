@@ -33,3 +33,9 @@ Vector types
     - bitfoo::ArrayVec     // Array[BitFooNode] - offsets imply upper 2^16 of bitno
     - bitfoo::TreeVec      // BTree[BitFooNode] - keyed by upper 2^16 of bitno
 
+Other
+------
+- Implement From and Into traits for converting between different
+container types
+- Add conveniences to convert container bits to json, string, debug info
+

@@ -1,5 +1,11 @@
-pub mod traits;
-pub mod nodes;
+mod bitfoo;
+pub use bitfoo::BitFoo;
+
+mod node;
+pub use node::Node;
+
+mod stores;
+pub use stores::{MapStore,OffsetStore,BitVecStore};
 
 #[cfg(test)]
 mod tests {
