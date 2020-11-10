@@ -52,3 +52,10 @@ impl BitVecStore {
     }
 }
 
+// Implement the clone trait
+impl Clone for BitVecStore {
+    fn clone(&self) -> Self {
+        let bitvec = self.vec.clone();
+        BitVecStore{ vec: bitvec }
+    }
+}

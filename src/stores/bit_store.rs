@@ -13,8 +13,5 @@ pub trait BitStore {
 
     // Grab the next u64 chunk of bits
     fn get_u64(&self, offset: u16) -> u64;
-
-    // Implement logical operations with another container
-    //fn and(&self, other: &dyn BitFoo) -> Box<dyn BitFoo>;
 }
 

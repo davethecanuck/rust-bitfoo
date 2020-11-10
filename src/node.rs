@@ -15,7 +15,40 @@ impl Node {
         Node {
             key, 
             cardinality: 0,
-            store: BitFoo::Offset(OffsetStore::box_new()),
+            //store: BitFoo::Offset(OffsetStore::box_new()),
+            store: BitFoo::Offset(Box::new(OffsetStore::new())),
         }
     }
+
+    // Implement logical operations with another Node
+    pub fn and(&self, other: &Node) -> Node {
+        let result_store = match &self.store {
+            // EYE stubbing in
+            BitFoo::Zero => BitFoo::Zero,
+            BitFoo::One => other.store.clone(),
+            BitFoo::Vec(vec_store) => {
+                match other.store {
+                    // Zero & Zero
+                    BitFoo::Zero => BitFoo::Zero,
+
+                    // Vec & One
+                    BitFoo::One => other.store.clone(),
+
+                    // Default
+                    // EYE - Need to actually implement the 'and' function
+                    _ => BitFoo::Zero,
+                }
+            },
+
+            // Default
+            _ => BitFoo::Zero,
+        };
+
+        Node {
+            key: self.key,
+            cardinality: self.cardinality,
+            store: result_store,
+        }
+    }
+
 }

@@ -34,3 +34,12 @@ impl OffsetStore {
         self.offsets.contains(&bitno)
     }
 }
+
+// Implement the clone trait
+impl Clone for OffsetStore {
+    fn clone(&self) -> Self {
+        let offset_tree = self.offsets.clone();
+        OffsetStore{ offsets: offset_tree }
+    }
+}
+

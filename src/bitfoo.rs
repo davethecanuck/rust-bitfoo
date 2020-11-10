@@ -7,7 +7,6 @@ use crate::{MapStore,OffsetStore,BitVecStore};
  */
 #[derive(Debug)]
 pub enum BitFoo {
-    Map(Box<MapStore>),
     Offset(Box<OffsetStore>),
     Vec(Box<BitVecStore>),
     Zero,
@@ -18,7 +17,6 @@ impl BitFoo {
     // Bitwise operations
     pub fn set(&mut self, bitno: u16) {
         match self {
-            BitFoo::Map(v) => v.set(bitno),
             BitFoo::Offset(v) => v.set(bitno),
             BitFoo::Vec(v) => v.set(bitno),
             _ => {}
@@ -27,7 +25,6 @@ impl BitFoo {
 
     pub fn clear(&mut self, bitno: u16) {
         match self {
-            BitFoo::Map(s) => s.clear(bitno),
             BitFoo::Offset(s) => s.clear(bitno),
             BitFoo::Vec(s) => s.clear(bitno),
             _ => {}
@@ -36,30 +33,21 @@ impl BitFoo {
 
     pub fn get(&self, bitno: u16) -> bool {
         match self {
-            BitFoo::Map(s) => s.get(bitno),
             BitFoo::Offset(s) => s.get(bitno),
             BitFoo::Vec(s) => s.get(bitno),
             BitFoo::Zero => false,
             BitFoo::One => true,
         }
     }
-
-    // Implement logical operations with another container
-    pub fn and(&self, other: &BitFoo) -> BitFoo {
-        /*
-        match self {
-            BitFoo::Zero => BitFoo::Zero,
-            BitFoo::One => other.clone(),
-            BitFoo::Vec => {
-                match other {
-                    BitFoo::Zero => BitFoo::Zero,
-                    BitFoo::One => self.clone(),
-                    BitFoo::Vec => {}
-                },
-            }
-        }
-        */
-        BitFoo::Zero
-    }
 }
 
+impl Clone for BitFoo {
+    fn clone(&self) -> BitFoo {
+        match self {
+            BitFoo::Offset(offset_store) => BitFoo::Offset(offset_store.clone()),
+            BitFoo::Vec(vec_store) => BitFoo::Vec(vec_store.clone()),
+            BitFoo::Zero => BitFoo::Zero,
+            BitFoo::One => BitFoo::One,
+        }
+    }
+}
