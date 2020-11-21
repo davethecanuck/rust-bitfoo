@@ -16,6 +16,15 @@ impl BitFooVec {
             nodes: NodeVec::new(),
         }
     }
+
+    pub fn set(&mut self, bitno: u64) {
+        let addr = Addr::new(bitno);
+        println!("--- Setting bit {} ---", bitno);
+        println!("Node level is {}", addr.level());
+        for level in (0..=addr.level()).rev() {
+            println!("    {} => {}", level, addr.key(level));
+        }
+    }
 }
 
 impl Clone for BitFooVec {

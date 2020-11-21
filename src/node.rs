@@ -2,23 +2,27 @@ use crate::Content;
 
 #[derive(Debug)]
 pub struct Node {
-    pub offset: u8,
+    pub key: u8,
     pub content: Content,
 }
 
 impl Node {
-    pub fn new(offset: u8, content: Content) -> Self {
+    pub fn new(key: u8, content: Content) -> Self {
         Node {
-            offset, 
+            key, 
             content
         }
+    }
+
+    pub fn key(&self) -> u8 {
+        self.key
     }
 }
 
 impl Clone for Node {
     fn clone(&self) -> Node {
         Node { 
-            offset: self.offset.clone(),
+            key: self.key.clone(),
             content: self.content.clone()
         }
     }
