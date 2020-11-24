@@ -4,6 +4,9 @@ pub use bitfoovec::BitFooVec;
 mod addr;
 pub use addr::Addr;
 
+mod leaf_node_vec;
+pub use leaf_node_vec::{LeafNodeVec,LeafNode};
+
 mod nodevec;
 pub use nodevec::NodeVec;
 

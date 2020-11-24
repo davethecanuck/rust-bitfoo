@@ -12,5 +12,6 @@ fn main() {
     let bitno = 4_000_000_000 * 4_000_000_000 + 1234567;
     let addr = Addr::new(bitno);
     println!("{} address => {:?}", bitno, addr);
+    println!("Size of Addr is {} bytes", std::mem::size_of::<Addr>());
 }
 

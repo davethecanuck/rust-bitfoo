@@ -2,11 +2,15 @@ use bitfoo::{Content,NodeVec};
 
 fn main() {
     let c1 = Content::Child(NodeVec::new());     
-    let c2 = Content::Bits(3);     
-    let c3 = Content::Ones;
+    println!("c1 is {:?}, size={}-bytes", c1, std::mem::size_of_val(&c1));
 
-    println!("c1 is {:?}", c1);
-    println!("c2 is {:?}", c2);
-    println!("c3 is {:?}", c3);
+    let c2 = Content::Bits(3);     
+    println!("c2 is {:?}, size={}-bytes", c2, std::mem::size_of_val(&c2));
+
+    let c3 = Content::Ones;
+    println!("c3 is {:?}, size={}-bytes", c3, std::mem::size_of_val(&c3));
+
+    println!("Size of Content is {}-bytes", 
+             std::mem::size_of::<Content>());
 }
 

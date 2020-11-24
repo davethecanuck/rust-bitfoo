@@ -23,7 +23,7 @@ pub struct Addr {
 impl Addr {
     pub fn new(bitno: u64) -> Self {
         let mut addr = Addr {
-            level: 0,
+            level: 1,
             key: [0;9],
         };
 
@@ -31,7 +31,8 @@ impl Addr {
             let param = LEVEL_PARAM[i as usize];
             addr.key[i] = ((bitno >> param.0) & param.1) as u8;
             if addr.key[i] > 0 {
-                addr.level = i as u8;
+                // Always at least 1 level
+                addr.level = (std::cmp::max(i, 1)) as u8;
             }
         }
         addr

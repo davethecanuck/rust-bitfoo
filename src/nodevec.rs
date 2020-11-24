@@ -2,21 +2,28 @@ use crate::Node;
 
 // Using a Vec wrapper so we can enforce max size
 // of 2^8 and implement custom resizing algo
+// Also using Box to make size 8 bytes on the stack
 
 #[derive(Debug)]
 pub struct NodeVec {
-    vec: Vec<Node>,
+    vec: Box<Vec<Node>>,   
+    // NOTE: Box Reduces size in Content enum
+    // but is an extra level of indirection.
 }
 
 impl NodeVec {
     pub fn new() -> Self {
         NodeVec {
-            vec: Vec::with_capacity(1)
+            vec: Box::new(Vec::with_capacity(1))
         }
     }
 
-    pub fn add(&mut self, node: Node) {
-        // EYE - check capacity
+    pub fn capacity(&self) -> usize {
+        self.vec.capacity()
+    }
+
+    pub fn push(&mut self, node: Node) {
+        // EYE - should manually expand capacity
         self.vec.push(node);
     }
 
@@ -28,16 +35,16 @@ impl NodeVec {
     // Return the node which matches this key.
     // If not found, return error with the offset
     // where it would need to be located.
-    pub fn search(&self, key: u8) -> Result<&Node,u8> {
-        match (self.vec.binary_search_by_key(&key, |node| node.key())) {
-            Ok(offset) => Ok(&self.vec[offset]),
+    pub fn search(&self, key: u8) -> Result<(u8,&Node),u8> {
+        match self.vec.binary_search_by_key(&key, |node| node.key()) {
+            Ok(offset) => Ok((offset as u8, &self.vec[offset])),
             Err(offset) => Err(offset as u8)
         }
     }
 
-    pub fn search_mut(&mut self, key: u8) -> Result<&mut Node,u8> {
-        match (self.vec.binary_search_by_key(&key, |node| node.key())) {
-            Ok(offset) => Ok(&mut self.vec[offset]),
+    pub fn search_mut(&mut self, key: u8) -> Result<(u8,&mut Node),u8> {
+        match self.vec.binary_search_by_key(&key, |node| node.key()) {
+            Ok(offset) => Ok((offset as u8, &mut self.vec[offset])),
             Err(offset) => Err(offset as u8)
         }
     }
@@ -64,7 +71,7 @@ impl NodeVec {
 impl Clone for NodeVec {
     fn clone(&self) -> NodeVec {
         NodeVec { 
-            vec: self.vec.to_vec()
+            vec: Box::new(self.vec.to_vec())
         }
     }
 }
