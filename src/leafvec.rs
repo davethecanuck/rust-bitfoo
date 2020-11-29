@@ -1,7 +1,7 @@
 use crate::{Addr,BitVec256};
 
 // Temporary object used to hold elements taken from
-// or sent to the LeafNodeVec
+// or sent to the LeafVec
 #[derive(Debug)]
 pub struct LeafNode {
     offset: u8,
@@ -12,7 +12,7 @@ pub struct LeafNode {
 // Leaf nodes stored as parallel vectors of 
 // keys and bits 
 #[derive(Debug)]
-pub struct LeafNodeVec {
+pub struct LeafVec {
     keys: Vec<u8>,
     bits: Vec<u64>,
     child_map: BitVec256,  
@@ -22,10 +22,10 @@ pub struct LeafNodeVec {
     // to be all ones (by key)
 }
 
-impl LeafNodeVec {
+impl LeafVec {
     // Constructor
     pub fn new() -> Self {
-        LeafNodeVec {
+        LeafVec {
             keys: Vec::with_capacity(1),
             bits: Vec::with_capacity(1),
             child_map: BitVec256::new(),
@@ -36,8 +36,9 @@ impl LeafNodeVec {
     pub fn set(&mut self, addr: &Addr) {
         // Level is always 1 for leaf nodes
         let key = addr.key(1);
-        let bitmask = 0x1 << addr.key(0);
+        self.child_map.set(key);
 
+        let bitmask = 0x1 << addr.key(0);
         match self.search(key) {
             Ok(node) => {
                 // Found the node, so set the bit
@@ -60,14 +61,19 @@ impl LeafNodeVec {
     pub fn get(&mut self, addr: &Addr) -> bool {
         // Level is always 1 for leaf nodes
         let key = addr.key(1);
-        let bitmask = 0x1 << addr.key(0);
+        if !self.child_map[key] {
+            return false;
+        }
 
+        let bitmask = 0x1 << addr.key(0);
         match self.search(key) {
             Ok(node) => {
                 self.bits[node.offset as usize] & bitmask > 0
             },
             Err(_offset) => {
-                false
+                // May be true if child_map is set for this key
+                // (indicates all 1s at this offset)
+                self.child_map[key] 
             }
         }
     }
@@ -92,8 +98,6 @@ impl LeafNodeVec {
     // available offset
     pub fn node(&self, offset: u8) -> Result<LeafNode,u8> {
         let last_offset = self.keys.len();
-        // EYE - max of 255
-        // EYE - use child_ones to return a 64x1 bitset (0x3f)?
 
         if (offset as usize) < last_offset {
             let node = LeafNode {
@@ -119,9 +123,9 @@ impl LeafNodeVec {
     }
 }
 
-impl Clone for LeafNodeVec {
-    fn clone(&self) -> LeafNodeVec {
-        LeafNodeVec { 
+impl Clone for LeafVec {
+    fn clone(&self) -> LeafVec {
+        LeafVec { 
             keys: self.keys.to_vec(),
             bits: self.bits.to_vec(),
             child_map: self.child_map.clone(),

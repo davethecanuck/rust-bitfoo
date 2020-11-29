@@ -37,16 +37,11 @@ impl BitVec256 {
         self.data[0] | self.data[1] | self.data[2] | self.data[3] == 0
     }
 
-    pub fn data2(&self) -> &[u64;4] {
-        &self.data
-    }
-
     // Return an iterator
     pub fn iter(&self) -> BitVec256Iterator {
         BitVec256Iterator {
             vec: self,
             bitno: 0,
-            is_first: true,
         }
     }
 }
@@ -55,10 +50,6 @@ impl BitVec256 {
 impl BitVec256 {
     fn location(&self, bitno: u8) -> (u8,u8) {
         (bitno / 64, bitno % 64)
-    }
-
-    fn bitno(&self, word: u8, offset: u8) -> u8 {
-        word * 64 + offset
     }
 
     fn raw_data(&self, offset: u8) -> u64 {
@@ -93,24 +84,23 @@ impl Index<u8> for BitVec256 {
 pub struct BitVec256Iterator<'a> {
     vec: &'a BitVec256,
     bitno: u8,
-    is_first: bool,
 }
 
 impl<'a> Iterator for BitVec256Iterator<'a> {
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
-        if self.bitno == 255 {
+        if self.bitno == u8::MAX {
             return None;
         }
 
-        while self.bitno <= 255 {
+        while self.bitno <= u8::MAX {
             let currbit = self.bitno;
-            if self.bitno < 255 {
+            if self.bitno < u8::MAX {
                 self.bitno += 1;
             }
 
-            let (mut word, mut offset) = self.vec.location(currbit);
+            let (word, offset) = self.vec.location(currbit);
             if self.vec.raw_data(word) >> offset & 1 > 0 {
                 return Some(currbit);
             }
