@@ -1,4 +1,5 @@
 use std::ops::Index;
+use std::iter::Iterator;
 
 // Static 256 bit vector
 #[derive(Debug)]
@@ -13,11 +14,6 @@ impl BitVec256 {
         BitVec256 {
             data: [0;4]
         }
-    }
-
-    // Fixed size
-    pub fn max_offset() -> u8 {
-        255
     }
 
     // Use u8 as offset so we don't need to do
@@ -41,9 +37,17 @@ impl BitVec256 {
         self.data[0] | self.data[1] | self.data[2] | self.data[3] == 0
     }
 
-    // Return direct access to the raw data
-    pub fn data(&self) -> &[u64;4] {
+    pub fn data2(&self) -> &[u64;4] {
         &self.data
+    }
+
+    // Return an iterator
+    pub fn iter(&self) -> BitVec256Iterator {
+        BitVec256Iterator {
+            vec: self,
+            bitno: 0,
+            is_first: true,
+        }
     }
 }
 
@@ -51,6 +55,14 @@ impl BitVec256 {
 impl BitVec256 {
     fn location(&self, bitno: u8) -> (u8,u8) {
         (bitno / 64, bitno % 64)
+    }
+
+    fn bitno(&self, word: u8, offset: u8) -> u8 {
+        word * 64 + offset
+    }
+
+    fn raw_data(&self, offset: u8) -> u64 {
+        self.data[offset as usize]
     }
 }
 
@@ -74,6 +86,38 @@ impl Index<u8> for BitVec256 {
             true => &true,
             false => &false
         }
+    }
+}
+
+// Iterator over set bits
+pub struct BitVec256Iterator<'a> {
+    vec: &'a BitVec256,
+    bitno: u8,
+    is_first: bool,
+}
+
+impl<'a> Iterator for BitVec256Iterator<'a> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<u8> {
+        if self.bitno == 255 {
+            return None;
+        }
+
+        while self.bitno <= 255 {
+            let currbit = self.bitno;
+            if self.bitno < 255 {
+                self.bitno += 1;
+            }
+
+            let (mut word, mut offset) = self.vec.location(currbit);
+            if self.vec.raw_data(word) >> offset & 1 > 0 {
+                return Some(currbit);
+            }
+        }
+
+        // No more found if we got here
+        None
     }
 }
 
@@ -104,8 +148,8 @@ mod tests {
 
         // Only the first byte of word 0 
         // has bits set
-        assert_eq!(v.data()[0],  0b_0000_0010);
-        assert_eq!(v2.data()[0], 0b_0000_0111);
+        assert_eq!(v.raw_data(0),  0b_0000_0010);
+        assert_eq!(v2.raw_data(0), 0b_0000_0111);
     }
 
     #[test]
@@ -116,16 +160,16 @@ mod tests {
         for bitno in [0,65,130,254,255].iter() {
             v.set(*bitno);
         }
-        assert_eq!(v.data()[0], 0b_0000_0001);
-        assert_eq!(v.data()[1], 0b_0000_0010);
-        assert_eq!(v.data()[2], 0b_0000_0100);
-        assert_eq!(v.data()[3], 0b_1100_0000 << 7*8);
+        assert_eq!(v.raw_data(0), 0b_0000_0001);
+        assert_eq!(v.raw_data(1), 0b_0000_0010);
+        assert_eq!(v.raw_data(2), 0b_0000_0100);
+        assert_eq!(v.raw_data(3), 0b_1100_0000 << 7*8);
 
         // Clear some bits
         v.clear(0);
         v.clear(255);
-        assert_eq!(v.data()[0], 0b_0000_0000);
-        assert_eq!(v.data()[3], 0b_0100_0000 << 7*8);
+        assert_eq!(v.raw_data(0), 0b_0000_0000);
+        assert_eq!(v.raw_data(3), 0b_0100_0000 << 7*8);
     }
 
     #[test]
@@ -140,6 +184,26 @@ mod tests {
         assert_eq!(true, v[2]);
         v.clear(2);
         assert_eq!(false, v[2]);
+        v.set(255);
+        assert_eq!(true, v[255]);
+    }
+
+    #[test]
+    fn iterator() {
+        // Populate a vector
+        let mut v = BitVec256::new();
+        let input_bits = vec![0_u8, 28, 65, 129, 255];
+        for i in 0..input_bits.len() {
+            v.set(input_bits[i]);
+        }
+
+        // Now iterate throuh the vector and 
+        // check that it matches the input
+        let mut output_bits = Vec::new();
+        for b in v.iter() {
+            output_bits.push(b);
+        }
+        assert_eq!(&input_bits, &output_bits);
     }
 
     #[test]
