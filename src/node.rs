@@ -8,7 +8,7 @@ pub enum Content {
 
 #[derive(Debug)]
 pub struct Node {
-    level: u8,
+    pub level: u8,
     index: BitVec256,  // Set when the given key has 1's
     keys: Vec<u8>,     // List of keys that aligns with bits/child_nodes
     content: Content,  // Contains vec of either u64 bits or Nodes
@@ -59,7 +59,9 @@ impl Node {
                 // Do bit level set on u64 bit vector
                 let bitmask = 0x1 << addr.key(0);  // Bit offset
                 match offset {
-                    Ok(off) => vec[off as usize] |= bitmask,
+                    Ok(off) => {
+                        vec[off as usize] |= bitmask;
+                    },
                     Err(off) => {
                         // Insert into the bitmask vector and keys 
                         // vector in parallel
