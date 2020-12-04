@@ -44,16 +44,16 @@ impl BitVec256 {
             bitno: 0,
         }
     }
+
+    pub fn raw_data(&self, offset: u8) -> u64 {
+        self.data[offset as usize]
+    }
 }
 
 // Private interface
 impl BitVec256 {
     fn location(&self, bitno: u8) -> (u8,u8) {
         (bitno / 64, bitno % 64)
-    }
-
-    fn raw_data(&self, offset: u8) -> u64 {
-        self.data[offset as usize]
     }
 }
 

@@ -1,4 +1,6 @@
 use crate::{Addr,BitVec256};
+use std::ops::Index;
+use std::iter::Iterator;
 
 #[derive(Debug)]
 pub enum Content {
@@ -14,6 +16,7 @@ pub struct Node {
     content: Content,  // Contains vec of either u64 bits or Nodes
 }
 
+// Public interface
 impl Node {
     // Constructor
     pub fn new(level: u8) -> Self {
@@ -91,6 +94,48 @@ impl Node {
             }
         }
     }
+    
+    // Clear the bit corresponding to this address 
+    pub fn clear(&mut self, addr: &Addr) {
+        // clear the index bit
+        let key = addr.key(self.level);
+        let offset = self.search(key); // Result(ok(offset), err(offset))
+
+        match &mut self.content {
+            Content::Bits(vec) => {
+                // Do bit level set on u64 bit vector
+                let bitmask = !(0x1 << addr.key(0));  // Bit offset
+                match offset {
+                    Ok(off) => {
+                        vec[off as usize] &= bitmask;
+                        if vec[off as usize] == 0 {
+                            // Bitmask has no bits set, so clear index
+                            self.index.clear(key);
+                        }
+                    },
+                    Err(_off) => {
+                        // Do nothing - we're clearing a bit that
+                        // wasn't set.
+                    }
+                }
+            },
+            Content::Nodes(vec) => {
+                match offset {
+                    Ok(off) => {
+                        let node = &mut vec[off as usize];
+                        node.clear(addr);
+                        if node.index.is_empty() {
+                            self.index.clear(key);
+                        }
+                    },
+                    Err(_off) => { 
+                        // Do nothing - we're clearing a bit that
+                        // wasn't set.
+                    }
+                }
+            }
+        }
+    }
 
     // Return the state of the bit for this address
     pub fn get(&self, addr: &Addr) -> bool {
@@ -125,6 +170,7 @@ impl Node {
     }
 }
 
+// Clone interface
 impl Clone for Node {
     fn clone(&self) -> Node {
         let content = match &self.content {
@@ -140,3 +186,58 @@ impl Clone for Node {
         }
     }
 }
+
+// Implement [u64] operator
+impl Index<u64> for Node {
+    type Output = bool;
+
+    fn index(&self, bitno: u64) -> &Self::Output {
+        // Can't easily return self.get() as
+        // it is a reference to a local var.
+        let addr = Addr::new(bitno);
+        match self.get(&addr) {
+            true => &true,
+            false => &false
+        }
+    }
+}
+
+// Implement [&Addr] operator
+impl Index<&Addr> for Node {
+    type Output = bool;
+
+    fn index(&self, addr: &Addr) -> &Self::Output {
+        // Can't easily return self.get() as
+        // it is a reference to a local var.
+        match self.get(addr) {
+            true => &true,
+            false => &false
+        }
+    }
+}
+
+
+//==============================================
+// Unit tests
+//==============================================
+
+#[cfg(test)]
+mod tests {
+    use crate::{Node,Addr};
+
+    #[test]
+    fn index() {
+        // Set a few bits, check index, then clear and check
+        let mut node = Node::new(1);
+        assert_eq!(node.index.raw_data(0), 0b_0000);
+        node.set(&Addr::new(0));
+        assert_eq!(node.index.raw_data(0), 0b_0001);
+        node.set(&Addr::new(5));
+        assert_eq!(node.index.raw_data(0), 0b_0001);
+        node.clear(&Addr::new(0));
+        assert_eq!(node.index.raw_data(0), 0b_0001);
+        node.clear(&Addr::new(5));
+        assert_eq!(node.index.raw_data(0), 0b_0000);
+    }
+}
+

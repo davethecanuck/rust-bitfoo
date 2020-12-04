@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::time::SystemTime;
 use std::{thread, time};
 use bitfoo::{Node,Addr};
@@ -9,15 +10,17 @@ fn main() {
     let numbits = 1000000;
     let interval = 10;
 
-    // Set initial node to be the same level as the
-    // addr of the last bit
-    let addr = Addr::new(numbits);
-    let mut node = Node::new(addr.level());
+    // Set to the max level as bits could be any u64
+    let mut node = Node::new(8);
     println!("Setting {} bits on {} level node...", 
              numbits, node.level);
 
+    // Randomly set the required number of bits
+    let mut rng = rand::thread_rng();
+    
     println!("Start bit SET: {:?}", SystemTime::now());
-    for bitno in 0..numbits {
+    for _n in 0..numbits {
+        let bitno: u64 = rng.gen();
         if bitno % interval == 0 {
             let addr = Addr::new(bitno);
             println!("Setting bitno={} addr={:?}", bitno, addr);
