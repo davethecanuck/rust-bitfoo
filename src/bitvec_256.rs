@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::ops::{Index,BitAnd,BitOr};
 use std::iter::Iterator;
 
 // Static 256 bit vector
@@ -37,6 +37,10 @@ impl BitVec256 {
         self.data[0] | self.data[1] | self.data[2] | self.data[3] == 0
     }
 
+    pub fn is_full(&self) -> bool {
+        self.data[0] & self.data[1] & self.data[2] & self.data[3] == u64::MAX
+    }
+
     // Return an iterator
     pub fn iter(&self) -> BitVec256Iterator {
         BitVec256Iterator {
@@ -66,17 +70,45 @@ impl Clone for BitVec256 {
     }
 }
 
+// Static references for [] return values
+static TRUE: bool = true;
+static FALSE: bool = false;
+
 // Override [] operator
 impl Index<u8> for BitVec256 {
     type Output = bool;
 
     fn index(&self, bitno: u8) -> &Self::Output {
-        // Can't easily return self.get() as
-        // it is a reference to a local var.
         match self.get(bitno) {
-            true => &true,
-            false => &false
+            true => &TRUE,
+            false => &FALSE
         }
+    }
+}
+
+// Override & operator
+impl BitAnd for BitVec256 {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        let mut result = BitVec256::new();
+        for i in 0..rhs.data.len() {
+            result.data[i] = self.data[i] & rhs.data[i];
+        }
+        result
+    }
+}
+
+// Override & operator
+impl BitOr for BitVec256 {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        let mut result = BitVec256::new();
+        for i in 0..rhs.data.len() {
+            result.data[i] = self.data[i] | rhs.data[i];
+        }
+        result
     }
 }
 
@@ -223,17 +255,58 @@ mod tests {
         for bitno in 0..=max_bit {
             if bitno % set_bit == 0 {
                 if bitno % clear_bit == 0 {
-                    assert_eq!(v.get(bitno), false);
+                    assert_eq!(false, v.get(bitno));
                 }
                 else {
-                    assert_eq!(v.get(bitno), true);
+                    assert_eq!(true, v.get(bitno));
                 }
             }
             else {
                 // All others were not set
-                assert_eq!(v.get(bitno), false);
+                assert_eq!(false, v.get(bitno));
             }
         }
     }
-}
 
+    #[test]
+    fn empty_and_full() {
+        let mut v = BitVec256::new();
+        assert_eq!(true, v.is_empty());
+        assert_eq!(false, v.is_full());
+
+        // Now fill the vector 
+        for bitno in 0..=u8::MAX {
+            assert_eq!(false, v.is_full());
+            v.set(bitno);
+            assert_eq!(false, v.is_empty());
+        }
+        assert_eq!(false, v.is_empty());
+        assert_eq!(true, v.is_full());
+    }
+
+    #[test]
+    fn bitand() {
+        let mut a = BitVec256::new();
+        let mut b = BitVec256::new();
+        a.set(0);
+        a.set(1);
+        b.set(1);
+        let c = a & b;
+        assert_eq!(false, c[0]); 
+        assert_eq!(true, c[1]); 
+        assert_eq!(0b_0010, c.data[0]); 
+    }
+
+    #[test]
+    fn bitor() {
+        let mut a = BitVec256::new();
+        let mut b = BitVec256::new();
+        a.set(0);
+        b.set(0);
+        b.set(1);
+        let c = a | b;
+        assert_eq!(true, c[0]); 
+        assert_eq!(true, c[1]); 
+        assert_eq!(0b_0011, c.data[0]); 
+    }
+}

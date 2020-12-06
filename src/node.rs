@@ -111,6 +111,7 @@ impl Node {
                         if vec[off as usize] == 0 {
                             // Bitmask has no bits set, so clear index
                             self.index.clear(key);
+                            //EYE - should remove node+key 
                         }
                     },
                     Err(_off) => {
@@ -126,6 +127,7 @@ impl Node {
                         node.clear(addr);
                         if node.index.is_empty() {
                             self.index.clear(key);
+                            //EYE - should remove node+key 
                         }
                     },
                     Err(_off) => { 
@@ -163,7 +165,8 @@ impl Node {
                         node.get(addr)
                     },
                     Err(_off) => true,
-                    // node not found means it's all 1's
+                    // Index is set but node not found
+                    // means it's all 1's
                 }
             }
         }
