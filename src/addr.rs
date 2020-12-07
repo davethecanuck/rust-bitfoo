@@ -52,3 +52,6 @@ impl Addr {
     }
 }
 
+#[cfg(test)]
+#[path = "./addr_test.rs"]
+mod tests;
