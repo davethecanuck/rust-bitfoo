@@ -14,7 +14,7 @@ const LEVEL_PARAM:[(u64,u64);9] = [
 ];
 
 // Container giving key by level for a u64 bitno
- #[derive(Debug)]
+#[derive(Debug)]
 pub struct Addr {
     pub level: u8,
     key: [u8;9],
