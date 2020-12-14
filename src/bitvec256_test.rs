@@ -159,3 +159,18 @@ fn bitor() {
     assert_eq!(true, c[1]); 
     assert_eq!(0b_0011, c.data[0]); 
 }
+
+#[test]
+fn offset() {
+    let mut a = BitVec256::new();
+    a.set(0);
+    a.set(5);
+    a.set(68);
+    a.set(129);
+    a.set(200);
+    a.set(255);
+
+    // EYE Need a full test including Err and Ok
+    assert_eq!(0, a.offset(0).unwrap());
+}
+

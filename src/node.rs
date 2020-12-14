@@ -55,6 +55,11 @@ impl Node {
         self.index.set(key);
         let offset = self.search(key); // Result(ok(offset), err(offset))
 
+        // EYE with NodeIndex, the above becomes:
+        // let offset = self.index.set(&addr)
+        // - key+index+level are part of NodeIndex
+        // - Node constructor is passed an index
+
         // Might be nice to split into bit and children functions, 
         // but I'm avoiding the mut borrow checker
         match &mut self.content {
@@ -117,6 +122,7 @@ impl Node {
                     Err(_off) => {
                         // Do nothing - we're clearing a bit that
                         // wasn't set.
+                        // EYE - but need to check bitvec256 index
                     }
                 }
             },
@@ -190,6 +196,10 @@ impl Clone for Node {
     }
 }
 
+// Static references for [] return values
+static TRUE: bool = true;
+static FALSE: bool = false;
+
 // Implement [u64] operator
 impl Index<u64> for Node {
     type Output = bool;
@@ -199,8 +209,8 @@ impl Index<u64> for Node {
         // it is a reference to a local var.
         let addr = Addr::new(bitno);
         match self.get(&addr) {
-            true => &true,
-            false => &false
+            true => &TRUE,
+            false => &FALSE
         }
     }
 }
@@ -213,8 +223,8 @@ impl Index<&Addr> for Node {
         // Can't easily return self.get() as
         // it is a reference to a local var.
         match self.get(addr) {
-            true => &true,
-            false => &false
+            true => &TRUE,
+            false => &FALSE
         }
     }
 }

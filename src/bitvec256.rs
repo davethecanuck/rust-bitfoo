@@ -41,11 +41,34 @@ impl BitVec256 {
         self.data[0] & self.data[1] & self.data[2] & self.data[3] == u64::MAX
     }
 
+    // Return the offset for the given key. This is the
+    // number of bits set before our key. If key is not
+    // set, return Err with the offset
+    pub fn offset(&self, key: u8) -> Result<u8,u8> {
+        let mut offset:u8 = 0;
+        for currkey in self.iter() {
+            if currkey == key {
+                // Found our key
+                return Ok(offset);
+            }
+            else if currkey > key {
+                // We stepped past our key
+                break;
+            }
+
+            offset += 1;
+        }
+
+        // Our key is not set
+        Err(offset)
+    }
+
     // Return an iterator
     pub fn iter(&self) -> BitVec256Iterator {
         BitVec256Iterator {
             vec: self,
             bitno: 0,
+            wordno: 0,
         }
     }
 
@@ -116,25 +139,36 @@ impl BitOr for BitVec256 {
 pub struct BitVec256Iterator<'a> {
     vec: &'a BitVec256,
     bitno: u8,
+    wordno: u8,
 }
 
 impl<'a> Iterator for BitVec256Iterator<'a> {
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
-        if self.bitno == u8::MAX {
-            return None;
-        }
+        // Count leading zeros and shift until
+        // no more found
+        while self.wordno < 4 {
+            let word = self.vec.data[self.wordno as usize] >> self.bitno;
+            let offset = word.trailing_zeros() as u8;
 
-        while self.bitno <= u8::MAX {
-            let currbit = self.bitno;
-            if self.bitno < u8::MAX {
-                self.bitno += 1;
+            if offset >= 64 {
+                // Done this word - on to the next
+                self.wordno += 1;
+                self.bitno = 0;
             }
+            else {
+                // Calculate the return value
+                let currbit = self.bitno + offset;
+                let retval = currbit + (self.wordno * 64);
 
-            let (word, offset) = self.vec.location(currbit);
-            if self.vec.raw_data(word) >> offset & 1 > 0 {
-                return Some(currbit);
+                // Increment our iterator bitno/wordno
+                self.bitno = currbit + 1;
+                if self.bitno >=  64 {
+                    self.wordno += 1;
+                    self.bitno = 0;
+                }
+                return Some(retval);
             }
         }
 

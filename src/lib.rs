@@ -9,3 +9,6 @@ pub use addr::Addr;
 
 mod node; 
 pub use node::{Node};
+
+mod key; 
+pub use key::{KeyState,KeyIndex};
