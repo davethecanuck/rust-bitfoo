@@ -10,8 +10,8 @@ pub struct KeyIndex {
 #[derive(Debug)]
 pub enum KeyState {
     Run,
-    Found(u8),   // offset
-    Missing(u8), // offset
+    Found(usize),   // offset
+    Missing(usize), // offset
 }
 
 // Public interface
@@ -31,6 +31,8 @@ impl KeyIndex {
     }
     
     // Check if this address is in our index
+    // EYE - offset returned ought to be usize as
+    // that is always how it is used to access Vec data
     pub fn search(&self, addr: &Addr) -> KeyState {
         let key = self.key(addr);
         if self.runs.get(key) {
@@ -38,9 +40,19 @@ impl KeyIndex {
         }
         else {
             match self.nodes.offset(key) {
-                Ok(offset) => KeyState::Found(offset),
-                Err(offset) => KeyState::Missing(offset),
+                Ok(offset) => KeyState::Found(offset as usize),
+                Err(offset) => KeyState::Missing(offset as usize),
             }
+        }
+    }
+
+    // Return the nodes offset corresponding to this Addr
+    // (missing or not). 
+    pub fn offset(&self, addr: &Addr) -> usize {
+        let key = self.key(addr);
+        match self.nodes.offset(key) {
+            Ok(offset) => offset as usize,
+            Err(offset) => offset as usize,
         }
     }
 

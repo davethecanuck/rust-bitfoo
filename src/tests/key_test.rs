@@ -32,7 +32,7 @@ fn set_and_search() {
     for bitno in 0..=u8::MAX as u64 * 64 {
         let addr = Addr::new(bitno as u64);
         let key = index.key(&addr);
-        let mut is_correct:bool;
+        let is_correct:bool;
 
         // We will compare our search output to what is 
         // in the input vectors

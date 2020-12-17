@@ -39,141 +39,132 @@ impl Node {
     pub fn set(&mut self, addr: &Addr) {
         match &mut self.content {
             Content::Bits(vec) => {
-                match self.index.search(addr) {
-                    KeyState::Run => (),  
-                    KeyState::Found(offset) => {
-                        // Update existing bitmask
-                        let idx = offset as usize;
-                        let newbits = vec[idx] | 0x1 << addr.key(0);
-
-                        if newbits == u64::MAX {
-                            // Run detected - remove node and update index
-                            vec.remove(idx);
-                            self.index.run(addr);
-                        }
-                        else {
-                            // Just save the bits
-                            vec[idx] = newbits;
-                        }
-                    },
-                    KeyState::Missing(offset) => {
-                        // Just set - no run possible
-                        let idx = offset as usize;
-                        vec.insert(idx, 0x1 << addr.key(0));
-                        self.index.set(addr);
-                    },
-                }
+                Self::set_bits(&mut self.index, vec, addr);
             },
             Content::Nodes(vec) => {
-                match self.index.search(addr) {
-                    KeyState::Run => (), 
-                    KeyState::Found(offset) => {
-                        // Tell child node to set bit
-                        let idx = offset as usize;
-                        vec[idx].set(addr);
-
-                        if vec[idx].index.is_all_runs() {
-                            // Run detected - remove node and update index
-                            vec.remove(idx);
-                            self.index.run(addr);
-                        }
-                    },
-                    KeyState::Missing(offset) => {
-                        // No run possible on first insert
-                        let idx = offset as usize;
-                        let mut node = Node::new(self.index.level - 1);
-                        node.set(addr);
-                        vec.insert(idx, node);
-                        self.index.set(addr);
-                    },
-                }
+                Self::set_nodes(&mut self.index, vec, addr);
             }
         }
     }
 
     // Clear the bit corresponding to this address 
-    /*
     pub fn clear(&mut self, addr: &Addr) {
-        // clear the index bit
-        let key = addr.key(self.level);
-        let offset = self.search(key); // Result(ok(offset), err(offset))
-
         match &mut self.content {
             Content::Bits(vec) => {
-                // Do bit level set on u64 bit vector
-                let bitmask = !(0x1 << addr.key(0));  // Bit offset
-                match offset {
-                    Ok(off) => {
-                        vec[off as usize] &= bitmask;
-                        if vec[off as usize] == 0 {
-                            // Bitmask has no bits set, so clear index
-                            self.index.clear(key);
-                            //EYE - should remove node+key 
-                        }
-                    },
-                    Err(_off) => {
-                        // Do nothing - we're clearing a bit that
-                        // wasn't set.
-                        // EYE - but need to check bitvec256 index
-                    }
-                }
+                Self::clear_bits(&mut self.index, vec, addr);
             },
             Content::Nodes(vec) => {
-                match offset {
-                    Ok(off) => {
-                        let node = &mut vec[off as usize];
-                        node.clear(addr);
-                        if node.index.is_empty() {
-                            self.index.clear(key);
-                            //EYE - should remove node+key 
-                        }
-                    },
-                    Err(_off) => { 
-                        // Do nothing - we're clearing a bit that
-                        // wasn't set.
-                    }
-                }
+                Self::clear_nodes(&mut self.index, vec, addr);
             }
         }
     }
-*/
 
     // Return the state of the bit for this address
     pub fn get(&self, addr: &Addr) -> bool {
-        false
-    }
-/*
-        let key = addr.key(self.level);
-        if !self.index[key] {
-            // Shortcut if index not set
-            return false;
-        }
-
-        // Check our content vector
-        let offset = self.search(key);
-        match &self.content {
-            Content::Bits(vec) => {
-                let bitmask = 0x1 << addr.key(0);  // Bit offset
-                match offset {
-                    Ok(off) => vec[off as usize] & bitmask > 0,
-                    Err(_off) => true,
-                    // bitmask not found means it's all 1's
+        match self.index.search(addr) {
+            KeyState::Run => true,
+            KeyState::Found(offset) => {
+                match &self.content {
+                    Content::Bits(vec) => {
+                        vec[offset] & 0x1 << addr.key(0) > 0
+                    },
+                    Content::Nodes(vec) => {
+                        vec[offset].get(addr)
+                    }
                 }
             },
-            Content::Nodes(vec) => {
-                match offset {
-                    Ok(off) => {
-                        let node = &vec[off as usize];
-                        node.get(addr)
-                    },
-                    Err(_off) => true,
-                    // Index is set but node not found
-                    // means it's all 1's
-                }
+            KeyState::Missing(_offset) => {
+                false
             }
         }
     }
-    */
+}
+
+// Private helper functions.
+// NOTE: No &self passed in as we want to avoid obtaining
+// a second mutable borrow on &self. Instead we are passing in the
+// structure elements as mustable references
+impl Node {
+    // Set a bit for a 'Bits' type content
+    fn set_bits(index: &mut KeyIndex, vec: &mut Vec<u64>, addr: &Addr) {
+        match index.search(addr) {
+            KeyState::Run => (),  
+            KeyState::Found(offset) => {
+                // Update existing bitmask
+                let newbits = vec[offset] | 0x1 << addr.key(0);
+                if newbits == u64::MAX {
+                    // Run detected - remove node and update index
+                    vec.remove(offset);
+                    index.run(addr);
+                }
+                else {
+                    // Just save the bits
+                    vec[offset] = newbits;
+                }
+            },
+            KeyState::Missing(offset) => {
+                // Just set - no run possible
+                vec.insert(offset, 0x1 << addr.key(0));
+                index.set(addr);
+            },
+        }
+    }
+
+    // Set a bit for a 'Nodes' type content
+    fn set_nodes(index: &mut KeyIndex, vec: &mut Vec<Node>, addr: &Addr) {
+        match index.search(addr) {
+            KeyState::Run => (), 
+            KeyState::Found(offset) => {
+                // Tell child node to set bit
+                vec[offset].set(addr);
+                if vec[offset].index.is_all_runs() {
+                    // Run detected - remove node and update index
+                    vec.remove(offset);
+                    index.run(addr);
+                }
+            },
+            KeyState::Missing(offset) => {
+                // Create the new child node
+                let mut node = Node::new(index.level - 1);
+                node.set(addr);
+                vec.insert(offset, node);
+                index.set(addr);
+            },
+        }
+    }
+    
+    // Clear a bit for a 'Bits' type content
+    fn clear_bits(index: &mut KeyIndex, vec: &mut Vec<u64>, addr: &Addr) {
+        match index.search(addr) {
+            KeyState::Run => {
+                // EYE - TBD
+                // It's not longer a run, so need
+                // to create the node and clear the bit
+                // - need to get back the offset
+            },
+            KeyState::Found(offset) => {
+                // Update existing bitmask
+                let bitmask = !(0x1 << addr.key(0));  
+                let newbits = vec[offset] & bitmask;
+
+                if newbits == 0 {
+                    // Node is all 0's, so remove
+                    vec.remove(offset);
+                    index.clear(addr);
+                }
+                else {
+                    // Just save the bits
+                    vec[offset] = newbits;
+                }
+            },
+            KeyState::Missing(_offset) => (),
+            // No-op to clear all 0's
+        }
+    }
+    
+    // Clear a bit for a 'Nodes' type content
+    fn clear_nodes(index: &mut KeyIndex, vec: &mut Vec<Node>, addr: &Addr) {
+    }
 }
 
 // Clone interface

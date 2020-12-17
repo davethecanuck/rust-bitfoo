@@ -14,7 +14,7 @@ fn main() {
     let addr = Addr::new(numbits);
     let mut node = Node::new(addr.level());
     println!("Setting {} bits on {} level node...", 
-             numbits, node.level);
+             numbits, addr.level());
 
     println!("Start bit SET: {:?}", SystemTime::now());
     for bitno in 0..numbits {

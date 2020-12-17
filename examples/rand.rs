@@ -11,9 +11,10 @@ fn main() {
     let interval = 10;
 
     // Set to the max level as bits could be any u64
-    let mut node = Node::new(8);
+    let level = 8;
+    let mut node = Node::new(level);
     println!("Setting {} bits on {} level node...", 
-             numbits, node.level);
+             numbits, level);
 
     // Randomly set the required number of bits
     let mut rng = rand::thread_rng();
