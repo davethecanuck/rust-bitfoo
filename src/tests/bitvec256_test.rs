@@ -121,8 +121,8 @@ fn get_set_and_clear() {
 #[test]
 fn empty_and_full() {
     let mut v = BitVec256::new();
-    assert_eq!(true, v.is_empty());
     assert_eq!(false, v.is_full());
+    assert_eq!(true, v.is_empty());
 
     // Now fill the vector 
     for bitno in 0..=u8::MAX {
@@ -130,8 +130,8 @@ fn empty_and_full() {
         v.set(bitno);
         assert_eq!(false, v.is_empty());
     }
-    assert_eq!(false, v.is_empty());
     assert_eq!(true, v.is_full());
+    assert_eq!(false, v.is_empty());
 }
 
 #[test]

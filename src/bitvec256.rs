@@ -34,10 +34,12 @@ impl BitVec256 {
     }
 
     pub fn is_empty(&self) -> bool {
+        // EYE - should do lazy check
         self.data[0] | self.data[1] | self.data[2] | self.data[3] == 0
     }
 
     pub fn is_full(&self) -> bool {
+        // EYE - should do lazy check
         self.data[0] & self.data[1] & self.data[2] & self.data[3] == u64::MAX
     }
 
@@ -178,5 +180,5 @@ impl<'a> Iterator for BitVec256Iterator<'a> {
 }
 
 #[cfg(test)]
-#[path = "./bitvec256_test.rs"]
+#[path = "./tests/bitvec256_test.rs"]
 mod tests;

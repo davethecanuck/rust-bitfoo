@@ -38,6 +38,15 @@ impl Addr {
         addr
     }
 
+    pub fn bitno(&self) -> u64 {
+        let mut bitno:u64 = 0;
+        for i in 0..self.key.len() {
+            let param = LEVEL_PARAM[i as usize];
+            bitno += (self.key[i] as u64) << param.0;
+        }
+        bitno
+    }
+
     pub fn level(&self) -> u8 {
         self.level
     }
@@ -53,5 +62,5 @@ impl Addr {
 }
 
 #[cfg(test)]
-#[path = "./addr_test.rs"]
+#[path = "./tests/addr_test.rs"]
 mod tests;

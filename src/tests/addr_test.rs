@@ -2,6 +2,14 @@
 use crate::Addr;
 
 #[test]
+fn addr_to_bitno() {
+    for bitno in 0..0x3F_FF {
+        let addr = Addr::new(bitno);
+        assert_eq!(bitno, addr.bitno());
+    }
+}
+
+#[test]
 fn keys_and_level() {
     let mut first:u64 = 0;
     let mut last:u64 = 0x3F_FF;

@@ -1,4 +1,4 @@
-use crate::{Addr,BitVec256};
+use crate::{Addr,KeyIndex,KeyState};
 use std::ops::Index;
 //use std::iter::Iterator;
 
@@ -10,9 +10,7 @@ pub enum Content {
 
 #[derive(Debug)]
 pub struct Node {
-    pub level: u8,
-    index: BitVec256,  // Set when the given key has 1's
-    keys: Vec<u8>,     // List of keys that aligns with bits/child_nodes
+    index: KeyIndex,   // Indexes content keys by vec offset
     content: Content,  // Contains vec of either u64 bits or Nodes
 }
 
@@ -32,75 +30,69 @@ impl Node {
                 
         // Contains child nodes 
         Node {
-            level,
-            index: BitVec256::new(),
-            keys: Vec::with_capacity(1),
+            index: KeyIndex::new(level),
             content
         }
     }
-    
-    // Return the Ok(offset) where this key is found, or
-    // the Err(offset) where it should be
-    pub fn search(&self, key: u8) -> Result<u8,u8> {
-        match self.keys.binary_search(&key) {
-            Ok(offset) => Ok(offset as u8),
-            Err(offset) => Err(offset as u8)
-        }
-    }
 
-    // Set the bit corresponding to this address 
+    // Set the bit corresponding to this address.
     pub fn set(&mut self, addr: &Addr) {
-        // Set the index bit
-        let key = addr.key(self.level);
-        self.index.set(key);
-        let offset = self.search(key); // Result(ok(offset), err(offset))
-
-        // EYE with NodeIndex, the above becomes:
-        // let offset = self.index.set(&addr)
-        // - key+index+level are part of NodeIndex
-        // - Node constructor is passed an index
-
-        // Might be nice to split into bit and children functions, 
-        // but I'm avoiding the mut borrow checker
         match &mut self.content {
             Content::Bits(vec) => {
-                // Do bit level set on u64 bit vector
-                let bitmask = 0x1 << addr.key(0);  // Bit offset
-                match offset {
-                    Ok(off) => {
-                        vec[off as usize] |= bitmask;
+                match self.index.search(addr) {
+                    KeyState::Run => (),  
+                    KeyState::Found(offset) => {
+                        // Update existing bitmask
+                        let idx = offset as usize;
+                        let newbits = vec[idx] | 0x1 << addr.key(0);
+
+                        if newbits == u64::MAX {
+                            // Run detected - remove node and update index
+                            vec.remove(idx);
+                            self.index.run(addr);
+                        }
+                        else {
+                            // Just save the bits
+                            vec[idx] = newbits;
+                        }
                     },
-                    Err(off) => {
-                        // Insert into the bitmask vector and keys 
-                        // vector in parallel
-                        vec.insert(off as usize, bitmask);
-                        self.keys.insert(off as usize, key);
-                    }
+                    KeyState::Missing(offset) => {
+                        // Just set - no run possible
+                        let idx = offset as usize;
+                        vec.insert(idx, 0x1 << addr.key(0));
+                        self.index.set(addr);
+                    },
                 }
             },
             Content::Nodes(vec) => {
-                match offset {
-                    Ok(off) => {
-                        let node = &mut vec[off as usize];
-                        node.set(addr);
+                match self.index.search(addr) {
+                    KeyState::Run => (), 
+                    KeyState::Found(offset) => {
+                        // Tell child node to set bit
+                        let idx = offset as usize;
+                        vec[idx].set(addr);
+
+                        if vec[idx].index.is_all_runs() {
+                            // Run detected - remove node and update index
+                            vec.remove(idx);
+                            self.index.run(addr);
+                        }
                     },
-                    Err(off) => { 
-                        // Insert a node into the vector at the 
-                        // next level down
-                        let mut node = Node::new(self.level - 1);
+                    KeyState::Missing(offset) => {
+                        // No run possible on first insert
+                        let idx = offset as usize;
+                        let mut node = Node::new(self.index.level - 1);
                         node.set(addr);
-                        
-                        // Insert into the content vector and keys 
-                        // vector in parallel
-                        vec.insert(off as usize, node);
-                        self.keys.insert(off as usize, key);
-                    }
+                        vec.insert(idx, node);
+                        self.index.set(addr);
+                    },
                 }
             }
         }
     }
-    
+
     // Clear the bit corresponding to this address 
+    /*
     pub fn clear(&mut self, addr: &Addr) {
         // clear the index bit
         let key = addr.key(self.level);
@@ -144,9 +136,13 @@ impl Node {
             }
         }
     }
+*/
 
     // Return the state of the bit for this address
     pub fn get(&self, addr: &Addr) -> bool {
+        false
+    }
+/*
         let key = addr.key(self.level);
         if !self.index[key] {
             // Shortcut if index not set
@@ -177,6 +173,7 @@ impl Node {
             }
         }
     }
+    */
 }
 
 // Clone interface
@@ -188,9 +185,7 @@ impl Clone for Node {
         };
 
         Node { 
-            level: self.level,
             index: self.index.clone(),
-            keys: self.keys.to_vec(),
             content: content
         }
     }
@@ -229,6 +224,8 @@ impl Index<&Addr> for Node {
     }
 }
 
+/* EYE TBD
 #[cfg(test)]
-#[path = "./node_test.rs"]
+#[path = "./tests/node_test.rs"]
 mod tests;
+*/

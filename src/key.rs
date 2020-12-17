@@ -9,9 +9,9 @@ pub struct KeyIndex {
 
 #[derive(Debug)]
 pub enum KeyState {
-    AllSet,
-    Found(u8, u8),   // key,  offset
-    Missing(u8, u8), // key,  offset
+    Run,
+    Found(u8),   // offset
+    Missing(u8), // offset
 }
 
 // Public interface
@@ -25,16 +25,21 @@ impl KeyIndex {
         }
     }
     
+    // Return true if the runs vector is full
+    pub fn is_all_runs(&self) -> bool {
+        self.runs.is_full()
+    }
+    
     // Check if this address is in our index
     pub fn search(&self, addr: &Addr) -> KeyState {
         let key = self.key(addr);
         if self.runs.get(key) {
-            return KeyState::AllSet;
+            return KeyState::Run;
         }
         else {
             match self.nodes.offset(key) {
-                Ok(offset) => KeyState::Found(key, offset),
-                Err(offset) => KeyState::Missing(key, offset),
+                Ok(offset) => KeyState::Found(offset),
+                Err(offset) => KeyState::Missing(offset),
             }
         }
     }
@@ -46,21 +51,24 @@ impl KeyIndex {
 
     // Mark this key as 'all set' (all node
     // bits are set)
-    pub fn mark_run(&mut self, key: u8, offset: u8) {
-        self.nodes.clear(key);
+    pub fn run(&mut self, addr: &Addr) {
+        let key = self.key(addr);
         self.runs.set(key);
+        self.nodes.clear(key);
     }
 
     // Mark this key as having a bit set
-    pub fn insert(&mut self, key: u8, offset: u8) {
+    pub fn set(&mut self, addr: &Addr) {
+        let key = self.key(addr);
         self.nodes.set(key);
+        self.runs.clear(key);
     }
 
     // Remove this key from the index
-    pub fn remove(&mut self, key: u8, offset: u8) {
+    pub fn clear(&mut self, addr: &Addr) {
+        let key = self.key(addr);
         self.nodes.clear(key);
-        // EYE - if all set then need to set all nodes
-        // except this one
+        self.runs.clear(key);
     }
 }
 
@@ -76,5 +84,5 @@ impl Clone for KeyIndex {
 }
 
 #[cfg(test)]
-#[path = "./key_test.rs"]
+#[path = "./tests/key_test.rs"]
 mod tests;
