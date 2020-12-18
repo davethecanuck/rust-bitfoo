@@ -29,6 +29,10 @@ impl KeyIndex {
     pub fn is_all_runs(&self) -> bool {
         self.runs.is_full()
     }
+
+    pub fn set_all_runs(&mut self) {
+        self.runs.set_all();
+    }
     
     // Check if this address is in our index
     // EYE - offset returned ought to be usize as
@@ -65,8 +69,8 @@ impl KeyIndex {
     // bits are set)
     pub fn run(&mut self, addr: &Addr) {
         let key = self.key(addr);
-        self.runs.set(key);
         self.nodes.clear(key);
+        self.runs.set(key);
     }
 
     // Mark this key as having a bit set

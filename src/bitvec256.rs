@@ -33,6 +33,18 @@ impl BitVec256 {
         (self.data[word as usize] & (1 << offset)) > 0
     }
 
+    pub fn set_all(&mut self) {
+        for i in 0..self.data.len() {
+            self.data[i] = u64::MAX;
+        }
+    }
+
+    pub fn clear_all(&mut self) {
+        for i in 0..self.data.len() {
+            self.data[i] = 0;
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         // EYE - should do lazy check
         self.data[0] | self.data[1] | self.data[2] | self.data[3] == 0

@@ -113,7 +113,7 @@ impl Node {
     // Set a bit for a 'Nodes' type content
     fn set_nodes(index: &mut KeyIndex, vec: &mut Vec<Node>, addr: &Addr) {
         match index.search(addr) {
-            KeyState::Run => (), 
+            KeyState::Run => (),    // No-op to set on a run
             KeyState::Found(offset) => {
                 // Tell child node to set bit
                 vec[offset].set(addr);
@@ -137,10 +137,12 @@ impl Node {
     fn clear_bits(index: &mut KeyIndex, vec: &mut Vec<u64>, addr: &Addr) {
         match index.search(addr) {
             KeyState::Run => {
-                // EYE - TBD
-                // It's not longer a run, so need
-                // to create the node and clear the bit
-                // - need to get back the offset
+                // It's not longer a run, so need to add a u64 to our 
+                // content vector with all bits set but the cleared bit.
+                // This will be the only element in the vector (offset=0)
+                let bitmask = !(0x1 << addr.key(0));  
+                vec.push(bitmask);
+                index.clear(addr); 
             },
             KeyState::Found(offset) => {
                 // Update existing bitmask
@@ -157,13 +159,30 @@ impl Node {
                     vec[offset] = newbits;
                 }
             },
-            KeyState::Missing(_offset) => (),
-            // No-op to clear all 0's
+            KeyState::Missing(_offset) => (), // No-op to clear all 0's
         }
     }
     
     // Clear a bit for a 'Nodes' type content
     fn clear_nodes(index: &mut KeyIndex, vec: &mut Vec<Node>, addr: &Addr) {
+        match index.search(addr) {
+            KeyState::Run => {
+                // Insert a node as 'all runs' and then clear 
+                // the bit for this addr
+                let mut node = Node::new(index.level - 1);
+                node.index.set_all_runs();
+                node.clear(addr);
+
+                // Add to our vector and set the index (offset 0)
+                vec.push(node); 
+                index.set(addr);  
+            },
+            KeyState::Found(offset) => {
+                vec[offset].clear(addr);
+                index.clear(addr);
+            },
+            KeyState::Missing(_offset) => (), // No-op if all 0's
+        }
     }
 }
 
