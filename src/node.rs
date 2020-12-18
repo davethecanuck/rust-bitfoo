@@ -167,8 +167,8 @@ impl Node {
     fn clear_nodes(index: &mut KeyIndex, vec: &mut Vec<Node>, addr: &Addr) {
         match index.search(addr) {
             KeyState::Run => {
-                // Insert a node as 'all runs' and then clear 
-                // the bit for this addr
+                // Insert a node with 'all runs' index, then
+                // clear this Addr
                 let mut node = Node::new(index.level - 1);
                 node.index.set_all_runs();
                 node.clear(addr);
