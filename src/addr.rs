@@ -1,3 +1,5 @@
+use std::fmt;
+
 // Constant to get bit shift and mask for each 
 // level of the tree
 // (bit_offset, mask)
@@ -14,8 +16,7 @@ const LEVEL_PARAM:[(u64,u64);9] = [
 ];
 
 // Container giving key by level for a u64 bitno
-#[derive(Debug)]
-pub struct Addr {
+pub struct Addr{
     pub level: u8,
     key: [u8;9],
 }
@@ -58,6 +59,17 @@ impl Addr {
         else {
             0_u8
         }
+    }
+}
+
+// Debug interface
+impl fmt::Debug for Addr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{ level:{}, key:[", self.level);
+        for level in (0..=self.level).rev() {
+            write!(f, " {}:[{:#x}]", level, self.key(level));
+        }
+        write!(f, " ] }}")
     }
 }
 

@@ -47,17 +47,20 @@ fn raw_data() {
 #[test]
 fn index() {
     let mut v = BitVec256::new();
-    assert_eq!(false, v[0]);
+    assert_eq!(v[0], false);
     v.set(0);
-    assert_eq!(true, v[0]);
+    assert_eq!(v[0], true);
+    assert_eq!(v[1], false);
     v.set(1);
-    assert_eq!(true, v[1]);
+    assert_eq!(v[1], true);
+    assert_eq!(v[2], false);
     v.set(2);
-    assert_eq!(true, v[2]);
+    assert_eq!(v[2], true);
     v.clear(2);
-    assert_eq!(false, v[2]);
+    assert_eq!(v[2], false);
+    assert_eq!(v[255], false);
     v.set(255);
-    assert_eq!(true, v[255]);
+    assert_eq!(v[255], true);
 }
 
 #[test]
@@ -121,17 +124,17 @@ fn get_set_and_clear() {
 #[test]
 fn empty_and_full() {
     let mut v = BitVec256::new();
-    assert_eq!(false, v.is_full());
-    assert_eq!(true, v.is_empty());
+    assert_eq!(v.is_full(), false);
+    assert_eq!(v.is_empty(), true);
 
     // Now fill the vector 
     for bitno in 0..=u8::MAX {
-        assert_eq!(false, v.is_full());
+        assert_eq!(v.is_full(), false);
         v.set(bitno);
-        assert_eq!(false, v.is_empty());
+        assert_eq!(v.is_empty(), false);
     }
-    assert_eq!(true, v.is_full());
-    assert_eq!(false, v.is_empty());
+    assert_eq!(v.is_full(), true);
+    assert_eq!(v.is_empty(), false);
 }
 
 #[test]
@@ -142,9 +145,9 @@ fn bitand() {
     a.set(1);
     b.set(1);
     let c = a & b;
-    assert_eq!(false, c[0]); 
-    assert_eq!(true, c[1]); 
-    assert_eq!(0b_0010, c.data[0]); 
+    assert_eq!(c[0], false); 
+    assert_eq!(c[1], true); 
+    assert_eq!(c.data[0], 0b_0010); 
 }
 
 #[test]
@@ -155,9 +158,9 @@ fn bitor() {
     b.set(0);
     b.set(1);
     let c = a | b;
-    assert_eq!(true, c[0]); 
-    assert_eq!(true, c[1]); 
-    assert_eq!(0b_0011, c.data[0]); 
+    assert_eq!(c[0], true); 
+    assert_eq!(c[1], true); 
+    assert_eq!(c.data[0], 0b_0011); 
 }
 
 #[test]
@@ -171,6 +174,6 @@ fn offset() {
     a.set(255);
 
     // EYE Need a full test including Err and Ok
-    assert_eq!(0, a.offset(0).unwrap());
+    assert_eq!(a.offset(0).unwrap(), 0);
 }
 

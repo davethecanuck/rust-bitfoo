@@ -10,8 +10,8 @@ pub enum Content {
 
 #[derive(Debug)]
 pub struct Node {
-    index: KeyIndex,   // Indexes content keys by vec offset
-    content: Content,  // Contains vec of either u64 bits or Nodes
+    pub index: KeyIndex,   // Indexes content keys by vec offset
+    content: Content,      // Contains vec of either u64 bits or Nodes
 }
 
 // Public interface
@@ -75,6 +75,21 @@ impl Node {
             },
             KeyState::Missing(_offset) => {
                 false
+            }
+        }
+    }
+
+    // Add the given node as a child
+    pub fn add_node(&mut self, node: Node) {
+        match &mut self.content {
+            Content::Bits(_vec) => {
+                // Someone is mis-using interface
+                panic!("Cannot call add_node on level 1 node");
+            },
+            Content::Nodes(vec) => {
+                // NOTE: Should only be used to append
+                // the first node (called by BitFooVec)
+                vec.push(node);
             }
         }
     }
@@ -142,7 +157,7 @@ impl Node {
                 // This will be the only element in the vector (offset=0)
                 let bitmask = !(0x1 << addr.key(0));  
                 vec.push(bitmask);
-                index.clear(addr); 
+                index.set(addr); 
             },
             KeyState::Found(offset) => {
                 // Update existing bitmask
@@ -234,8 +249,6 @@ impl Index<&Addr> for Node {
     }
 }
 
-/* EYE TBD
 #[cfg(test)]
 #[path = "./tests/node_test.rs"]
 mod tests;
-*/

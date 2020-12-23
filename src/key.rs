@@ -30,13 +30,45 @@ impl KeyIndex {
         self.runs.is_full()
     }
 
+    // Marks runs vector as all set
     pub fn set_all_runs(&mut self) {
         self.runs.set_all();
     }
-    
-    // Check if this address is in our index
-    // EYE - offset returned ought to be usize as
-    // that is always how it is used to access Vec data
+
+    // Return true if nodes vector is all 0s
+    pub fn is_nodes_empty(&self) -> bool {
+        self.nodes.is_empty()
+    }
+
+    // Return true if nodes vector is all 1s
+    pub fn is_nodes_full(&self) -> bool {
+        self.nodes.is_full()
+    }
+
+    // Return true if runs vector is all 0s
+    pub fn is_runs_empty(&self) -> bool {
+        self.runs.is_empty()
+    }
+
+    // Return true if runs vector is all 0s
+    pub fn is_runs_full(&self) -> bool {
+        self.runs.is_full()
+    }
+
+    // Return true if this Addr is set for our node index
+    pub fn is_node(&self, addr: &Addr) -> bool {
+        let key = self.key(addr);
+        self.nodes.get(key)
+    }
+
+    // Return true if this Addr is set for our run index
+    pub fn is_run(&self, addr: &Addr) -> bool {
+        let key = self.key(addr);
+        self.runs.get(key)
+    }
+
+    // Check if this address is in our index, returning
+    // the appropriate KeyState instance (Run, Found, Missing)
     pub fn search(&self, addr: &Addr) -> KeyState {
         let key = self.key(addr);
         if self.runs.get(key) {
@@ -61,7 +93,7 @@ impl KeyIndex {
     }
 
     // Return the key value for this Addr
-    fn key(&self, addr: &Addr) -> u8 {
+    pub fn key(&self, addr: &Addr) -> u8 {
         addr.key(self.level)
     }
 

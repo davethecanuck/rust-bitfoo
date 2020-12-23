@@ -24,17 +24,17 @@ impl BitFooVec {
     pub fn set(&mut self, bitno: u64) {
         let addr = Addr::new(bitno);
         while addr.level > self.level {
-            // Replace root with new one at next level
+            // Replace root with new one at next level up
             self.level += 1;
             let old_root = std::mem::replace(&mut self.root_node, 
                                                  Node::new(self.level));
 
-            // EYE set old_root to be child of new root 
-            // - need node method
+            // Set old_root to be child of new root 
+            self.root_node.add_node(old_root); 
+            self.root_node.index.set(&addr); // EYE test
         }
-        self.root_node.set(&addr);
 
-        // EYE - do we need len?
+        // len attribute is the last set bitno
         if bitno >= self.len {
             self.len = bitno+1;
         }
@@ -48,10 +48,6 @@ impl BitFooVec {
             self.root_node.clear(&addr);
         }
     }
-}
-
-// Private interface
-impl BitFooVec {
 }
 
 impl Clone for BitFooVec {

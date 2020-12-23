@@ -1,8 +1,9 @@
 use std::ops::{Index,BitAnd,BitOr};
 use std::iter::Iterator;
+use std::fmt;
 
 // Static 256 bit vector
-#[derive(Debug)]
+//#[derive(Debug)]
 pub struct BitVec256 {
     data: [u64;4],
 }
@@ -46,8 +47,8 @@ impl BitVec256 {
     }
 
     pub fn is_empty(&self) -> bool {
-        // EYE - should do lazy check
-        self.data[0] | self.data[1] | self.data[2] | self.data[3] == 0
+        self.data[0] == 0 && self.data[1] == 0 &&
+            self.data[2] == 0 && self.data[3] == 0
     }
 
     pub fn is_full(&self) -> bool {
@@ -104,6 +105,14 @@ impl Clone for BitVec256 {
         BitVec256 {
             data: self.data.clone(),
         }
+    }
+}
+
+// Debug interface
+impl fmt::Debug for BitVec256 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ 3:[{:#x}], 2:[{:#x}], 1:[{:#x}], 0:[{:#x}] ]", 
+               self.data[3], self.data[2], self.data[1], self.data[0])
     }
 }
 
