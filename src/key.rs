@@ -118,6 +118,12 @@ impl KeyIndex {
         self.nodes.clear(key);
         self.runs.clear(key);
     }
+
+    // Set a node bit directly. Used when BitFooVec
+    // is adding a child node directly
+    pub fn set_node_bit(&mut self, bitno: u8) {
+        self.nodes.set(bitno);
+    }
 }
 
 // Clone interface

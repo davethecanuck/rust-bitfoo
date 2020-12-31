@@ -3,7 +3,7 @@ use crate::Addr;
 
 #[test]
 fn addr_to_bitno() {
-    for bitno in 0..0x3F_FF {
+    for bitno in 0..=0x3F_FF + 1 {
         let addr = Addr::new(bitno);
         assert_eq!(bitno, addr.bitno());
     }
@@ -14,15 +14,16 @@ fn keys_and_level() {
     let mut first:u64 = 0;
     let mut last:u64 = 0x3F_FF;
 
+    // Level 1 node
     for level in 1_u8..=8 {
         for bitno in &[first, last] {
             // Verify the level
             let addr = Addr::new(*bitno);
-            assert_eq!(level, addr.level());
+            assert_eq!(level, addr.level);
 
             // Verify keys at each level 
             assert_eq!(bitno & 0x3F, addr.key(0) as u64); 
-            for key_level in 1..=addr.level() {
+            for key_level in 1..=addr.level {
                 // 6 bits at level 0 + 8 bits for other levels 
                 let key = addr.key(key_level);
                 let shift = 6 + 8 * (key_level-1);

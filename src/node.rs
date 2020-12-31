@@ -35,6 +35,11 @@ impl Node {
         }
     }
 
+    // Return Our level
+    pub fn level(&self) -> u8 {
+        self.index.level
+    }
+
     // Set the bit corresponding to this address.
     pub fn set(&mut self, addr: &Addr) {
         match &mut self.content {
@@ -90,6 +95,7 @@ impl Node {
                 // NOTE: Should only be used to append
                 // the first node (called by BitFooVec)
                 vec.push(node);
+                self.index.set_node_bit(0);
             }
         }
     }

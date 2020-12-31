@@ -12,15 +12,14 @@ fn main() {
     // Set initial node to be the same level as the
     // addr of the last bit
     let addr = Addr::new(numbits);
-    let mut node = Node::new(addr.level());
+    let mut node = Node::new(addr.level);
     println!("Setting {} bits on {} level node...", 
-             numbits, addr.level());
+             numbits, addr.level);
 
     println!("Start bit SET: {:?}", SystemTime::now());
     for bitno in 0..numbits {
         if bitno % interval == 0 {
             let addr = Addr::new(bitno);
-            println!("Setting bitno={} addr={:?}", bitno, addr);
             node.set(&addr);
         }
     }
@@ -31,8 +30,7 @@ fn main() {
     println!("Start bit GET: {:?}", SystemTime::now());
     for bitno in 0..numbits {
         let addr = Addr::new(bitno);
-        let state = node.get(&addr);
-        println!("{} is {}", bitno, state);
+        let _state = node.get(&addr);
     }
     println!("Time FINISHED: {:?}", SystemTime::now());
     thread::sleep(time::Duration::from_secs(1000));

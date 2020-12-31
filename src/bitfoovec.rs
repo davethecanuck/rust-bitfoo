@@ -3,8 +3,6 @@ use crate::{Node,Addr};
 // Main container for the bit vector
 #[derive(Debug)]
 pub struct BitFooVec {
-    len: u64,   // Set to the max bitno
-    level: u8,  // Must be same level as max bit level
     root_node: Node,
 }
 
@@ -12,10 +10,13 @@ pub struct BitFooVec {
 impl BitFooVec {
     pub fn new() -> Self {
         BitFooVec {
-            len: 0, 
-            level: 1,
-            root_node: Node::new(1),  // Can this be level 9?
+            root_node: Node::new(1),  // EYE - Can this be level 9?
         }
+    }
+
+    // Return the level from the root node
+    pub fn level(&self) -> u8 {
+        self.root_node.level()
     }
 
     // We delegate most logic to the Node but need
@@ -23,20 +24,28 @@ impl BitFooVec {
     // is too high
     pub fn set(&mut self, bitno: u64) {
         let addr = Addr::new(bitno);
-        while addr.level > self.level {
+        let mut level = self.level();
+
+        while addr.level > level {
             // Replace root with new one at next level up
-            self.level += 1;
-            let old_root = std::mem::replace(&mut self.root_node, 
-                                                 Node::new(self.level));
+            level += 1;
+            let old_root = std::mem::replace(
+                &mut self.root_node, Node::new(level));
 
             // Set old_root to be child of new root 
             self.root_node.add_node(old_root); 
-            self.root_node.index.set(&addr); // EYE test
         }
+        self.root_node.set(&addr);
+    }
 
-        // len attribute is the last set bitno
-        if bitno >= self.len {
-            self.len = bitno+1;
+    // Return state of this bit
+    pub fn get(&self, bitno: u64) -> bool {
+        let addr = Addr::new(bitno);
+        if addr.level > self.level() {
+            false
+        }
+        else {
+            self.root_node.get(&addr)
         }
     }
 
@@ -44,7 +53,7 @@ impl BitFooVec {
         // Don't need to insert nodes to represent a high bit
         // 0 - it's already implied to be 0
         let addr = Addr::new(bitno);
-        if addr.level <= self.level {
+        if addr.level <= self.level() {
             self.root_node.clear(&addr);
         }
     }
@@ -53,9 +62,12 @@ impl BitFooVec {
 impl Clone for BitFooVec {
     fn clone(&self) -> BitFooVec {
         BitFooVec { 
-            len: self.len.clone(),
-            level: self.level.clone(),
             root_node: self.root_node.clone(),
         }
     }
 }
+
+#[cfg(test)]
+#[path = "./tests/bitfoovec_test.rs"]
+mod tests;
+
