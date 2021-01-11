@@ -59,6 +59,10 @@ impl Addr {
             0_u8
         }
     }
+
+    pub fn set(&mut self, level: u8, key: u8) {
+        self.key[level as usize] = key;
+    }
 }
 
 // Debug interface

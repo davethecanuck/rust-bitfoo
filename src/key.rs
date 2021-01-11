@@ -1,17 +1,18 @@
-use crate::{Addr,BitVec256};
+use crate::{Addr,BitVec256,BitVec256Iterator};
+use std::iter::Iterator;
 
 #[derive(Debug)]
 pub struct KeyIndex {
     pub level: u8,
-    nodes: BitVec256, // Child nodes in the tree
-    runs:  BitVec256, // Child nodes that are all 1's (all set)
+    pub nodes: BitVec256, // Child nodes in the tree
+    pub runs:  BitVec256, // Child nodes that are all 1's (all set)
 }
 
 #[derive(Debug)]
 pub enum KeyState {
-    Run,
-    Found(usize),   // offset
-    Missing(usize), // offset
+    Run(u8),            // key
+    Found(u8, usize),   // key, offset
+    Missing(u8, usize), // key, offset
 }
 
 // Public interface
@@ -72,12 +73,12 @@ impl KeyIndex {
     pub fn search(&self, addr: &Addr) -> KeyState {
         let key = self.key(addr);
         if self.runs.get(key) {
-            return KeyState::Run;
+            return KeyState::Run(key);
         }
         else {
             match self.nodes.offset(key) {
-                Ok(offset) => KeyState::Found(offset as usize),
-                Err(offset) => KeyState::Missing(offset as usize),
+                Ok(offset) => KeyState::Found(key, offset as usize),
+                Err(offset) => KeyState::Missing(key, offset as usize),
             }
         }
     }
@@ -124,6 +125,20 @@ impl KeyIndex {
     pub fn set_node_bit(&mut self, bitno: u8) {
         self.nodes.set(bitno);
     }
+
+    // Return an iterator
+    pub fn iter(&self) -> KeyIndexIterator {
+        let mut node_iter = self.nodes.iter();
+        let mut run_iter = self.runs.iter();
+
+        KeyIndexIterator {
+            node_key: node_iter.next(),
+            node_offset: 0,
+            node_iter: node_iter,
+            run_key: run_iter.next(),
+            run_iter: run_iter,
+        }
+    }
 }
 
 // Clone interface
@@ -134,6 +149,55 @@ impl Clone for KeyIndex {
             nodes: self.nodes.clone(),
             runs: self.runs.clone(),
         }
+    }
+}
+
+// Iterator over index returns the sequence
+// of KeyState's
+pub struct KeyIndexIterator<'a> {
+    node_iter: BitVec256Iterator<'a>,
+    node_key: Option<u8>,
+    node_offset: usize,
+    run_iter: BitVec256Iterator<'a>,
+    run_key: Option<u8>,
+}
+
+impl<'a> Iterator for KeyIndexIterator<'a> {
+    type Item = KeyState;
+
+    fn next(&mut self) -> Option<KeyState> {
+        let mut result = None;
+
+        match (self.node_key, self.run_key) {
+            (Some(node_key), Some(run_key)) => {
+                // Return the next of the node or run keys
+                if node_key < run_key {
+                    result = Some(KeyState::Found(node_key, self.node_offset));
+                    self.node_key = self.node_iter.next();
+                    self.node_offset += 1;
+                }
+                else {
+                    result = Some(KeyState::Run(run_key));
+                    self.run_key = self.run_iter.next();
+                }
+            },
+            (Some(node_key), None) => {
+                // Only a node key found
+                result = Some(KeyState::Found(node_key, self.node_offset));
+                self.node_key = self.node_iter.next();
+                self.node_offset += 1;
+            },
+            (None, Some(run_key)) => {
+                // Only a run key found
+                result = Some(KeyState::Run(run_key));
+                self.run_key = self.run_iter.next();
+            }
+            _ => ()
+        }
+
+        // EYE - convert to KeyState and need to increment the
+        // offset in the iterator
+        result
     }
 }
 

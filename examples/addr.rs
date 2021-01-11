@@ -12,9 +12,9 @@ fn main() {
         }
     }
     let rate = get_rate(start.elapsed(), max);
-    println!("Set {} bits at rate of {} bits/sec", max, rate);
+    println!("Set {} Addr at rate of {} addr/sec", max, rate);
 
-    let bitno = 4_000_000_000 * 4_000_000_000 + 1234567;
+    let bitno = u64::MAX;
     let addr = Addr::new(bitno);
     println!("{} address => {:?}", bitno, addr);
     println!("Size of Addr is {} bytes", std::mem::size_of::<Addr>());

@@ -145,9 +145,35 @@ impl BitAnd for BitVec256 {
     }
 }
 
-// Override & operator
+// Override & operator for references
+impl BitAnd for &BitVec256 {
+    type Output = BitVec256;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        let mut result = BitVec256::new();
+        for i in 0..rhs.data.len() {
+            result.data[i] = self.data[i] & rhs.data[i];
+        }
+        result
+    }
+}
+
+// Override | operator
 impl BitOr for BitVec256 {
     type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        let mut result = BitVec256::new();
+        for i in 0..rhs.data.len() {
+            result.data[i] = self.data[i] | rhs.data[i];
+        }
+        result
+    }
+}
+
+// Override | operator for references
+impl BitOr for &BitVec256 {
+    type Output = BitVec256;
 
     fn bitor(self, rhs: Self) -> Self::Output {
         let mut result = BitVec256::new();
@@ -187,7 +213,7 @@ impl<'a> Iterator for BitVec256Iterator<'a> {
 
                 // Increment our iterator bitno/wordno
                 self.bitno = currbit + 1;
-                if self.bitno >=  64 {
+                if self.bitno >= 64 {
                     self.wordno += 1;
                     self.bitno = 0;
                 }

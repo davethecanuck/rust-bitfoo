@@ -2,6 +2,47 @@
 use crate::{KeyState,KeyIndex,Addr};
 
 #[test]
+fn iterator() {
+    let mut index = KeyIndex::new(1);
+    let input_runs = vec![5_u8, 10, 15, 20];
+    let input_nodes = vec![0_u8, 2, 128, 255];
+
+    for key in &input_runs {
+        // 64 bits at each key for level 1 index
+        let addr = Addr::new(*key as u64 * 64);
+        index.run(&addr);
+    }
+
+    for key in &input_nodes {
+        // 64 bits at each key for level 1 index
+        let addr = Addr::new(*key as u64 * 64);
+        index.set(&addr);
+    }
+
+    // Iterate through and compare to our initial inputs
+    let mut output_runs = Vec::<u8>::new();
+    let mut output_nodes = Vec::<u8>::new();
+    let mut curr_offset = 0;
+
+    for key_state in index.iter() {
+        match key_state {
+            KeyState::Found(key, offset) => {
+                output_nodes.push(key);
+                assert_eq!(offset, curr_offset);
+                curr_offset += 1;
+            },
+            KeyState::Run(key) => {
+                output_runs.push(key);
+            },
+            _ => ()
+        }
+    }
+
+    assert_eq!(input_runs, output_runs);
+    assert_eq!(input_nodes, output_nodes);
+}
+    
+#[test]
 fn set_and_search() {
     // Create level 1 index for keys 0-255
     let mut index = KeyIndex::new(1);
@@ -41,13 +82,13 @@ fn set_and_search() {
         let run = run_keys.contains(&key);
 
         match index.search(&addr) {
-            KeyState::Run => {
+            KeyState::Run(_key) => {
                 is_correct = run && !clear;
             },
-            KeyState::Found(_offset) => {
+            KeyState::Found(_key, _offset) => {
                 is_correct = node && !run && !clear;
             },
-            KeyState::Missing(_offset) => {
+            KeyState::Missing(_key, _offset) => {
                 is_correct = clear || !(run || node);
             },
         }
