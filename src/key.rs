@@ -183,9 +183,6 @@ impl<'a> Iterator for KeyIndexIterator<'a> {
             }
             _ => ()
         }
-
-        // EYE - convert to KeyState and need to increment the
-        // offset in the iterator
         result
     }
 }
