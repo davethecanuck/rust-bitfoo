@@ -194,7 +194,7 @@ pub struct BitVec256Iterator<'a> {
 impl<'a> Iterator for BitVec256Iterator<'a> {
     type Item = u8;
 
-    fn next(&mut self) -> Option<u8> {
+    fn next(&mut self) -> Option<Self::Item> {
         // Count leading zeros and shift until
         // no more found
         while self.wordno < 4 {

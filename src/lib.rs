@@ -11,4 +11,4 @@ mod node;
 pub use node::{Node};
 
 mod key; 
-pub use key::{KeyState,KeyIndex};
+pub use key::{KeyState,KeyIndex,KeyIndexIterator};

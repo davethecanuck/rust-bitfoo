@@ -26,7 +26,7 @@ fn iterator() {
 
     for key_state in index.iter() {
         match key_state {
-            KeyState::Found(key, offset) => {
+            KeyState::Node(key, offset) => {
                 output_nodes.push(key);
                 assert_eq!(offset, curr_offset);
                 curr_offset += 1;
@@ -85,7 +85,7 @@ fn set_and_search() {
             KeyState::Run(_key) => {
                 is_correct = run && !clear;
             },
-            KeyState::Found(_key, _offset) => {
+            KeyState::Node(_key, _offset) => {
                 is_correct = node && !run && !clear;
             },
             KeyState::Missing(_key, _offset) => {

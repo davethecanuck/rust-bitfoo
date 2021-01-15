@@ -11,7 +11,7 @@ pub struct KeyIndex {
 #[derive(Debug)]
 pub enum KeyState {
     Run(u8),            // key
-    Found(u8, usize),   // key, offset
+    Node(u8, usize),    // key, offset
     Missing(u8, usize), // key, offset
 }
 
@@ -69,7 +69,7 @@ impl KeyIndex {
     }
 
     // Check if this address is in our index, returning
-    // the appropriate KeyState instance (Run, Found, Missing)
+    // the appropriate KeyState instance (Run, Node, Missing)
     pub fn search(&self, addr: &Addr) -> KeyState {
         let key = self.key(addr);
         if self.runs.get(key) {
@@ -77,7 +77,7 @@ impl KeyIndex {
         }
         else {
             match self.nodes.offset(key) {
-                Ok(offset) => KeyState::Found(key, offset as usize),
+                Ok(offset) => KeyState::Node(key, offset as usize),
                 Err(offset) => KeyState::Missing(key, offset as usize),
             }
         }
@@ -141,17 +141,6 @@ impl KeyIndex {
     }
 }
 
-// Clone interface
-impl Clone for KeyIndex {
-    fn clone(&self) -> KeyIndex {
-        KeyIndex { 
-            level: self.level,
-            nodes: self.nodes.clone(),
-            runs: self.runs.clone(),
-        }
-    }
-}
-
 // Iterator over index returns the sequence
 // of KeyState's
 pub struct KeyIndexIterator<'a> {
@@ -172,7 +161,7 @@ impl<'a> Iterator for KeyIndexIterator<'a> {
             (Some(node_key), Some(run_key)) => {
                 // Return the next of the node or run keys
                 if node_key < run_key {
-                    result = Some(KeyState::Found(node_key, self.node_offset));
+                    result = Some(KeyState::Node(node_key, self.node_offset));
                     self.node_key = self.node_iter.next();
                     self.node_offset += 1;
                 }
@@ -183,7 +172,7 @@ impl<'a> Iterator for KeyIndexIterator<'a> {
             },
             (Some(node_key), None) => {
                 // Only a node key found
-                result = Some(KeyState::Found(node_key, self.node_offset));
+                result = Some(KeyState::Node(node_key, self.node_offset));
                 self.node_key = self.node_iter.next();
                 self.node_offset += 1;
             },
@@ -200,6 +189,18 @@ impl<'a> Iterator for KeyIndexIterator<'a> {
         result
     }
 }
+
+// Clone interface
+impl Clone for KeyIndex {
+    fn clone(&self) -> KeyIndex {
+        KeyIndex { 
+            level: self.level,
+            nodes: self.nodes.clone(),
+            runs: self.runs.clone(),
+        }
+    }
+}
+
 
 #[cfg(test)]
 #[path = "./tests/key_test.rs"]

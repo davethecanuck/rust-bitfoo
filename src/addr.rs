@@ -76,6 +76,16 @@ impl fmt::Debug for Addr {
     }
 }
 
+// Clone interface
+impl Clone for Addr {
+    fn clone(&self) -> Addr {
+        Addr { 
+            level: self.level,
+            key: self.key,
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "./tests/addr_test.rs"]
 mod tests;

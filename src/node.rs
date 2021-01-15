@@ -1,5 +1,6 @@
-use crate::{Addr,KeyIndex,KeyState};
+use crate::{Addr,KeyIndex,KeyState,KeyIndexIterator};
 use std::ops::Index;
+use std::iter::Iterator;
 
 #[derive(Debug)]
 pub enum Content {
@@ -12,13 +13,13 @@ pub struct Node {
     pub index: KeyIndex,   // Indexes content keys by vec offset
     content: Content,      // Contains vec of either u64 bits or Nodes
 }
-
+    
 // Public interface
 impl Node {
     // Constructor
     pub fn new(level: u8) -> Self {
-        // Level 1 contains a list of 64-bit chunks (which are level 0)
-        // Level 2+ contains child nodes
+        // Level 1 contains a list of 64-bit (2^6) chunks (which are level 0)
+        // Level 2+ contains up to 256 (2^8) child nodes
         let content = match level {
             1 => Content::Bits(Vec::with_capacity(1)),
             2..=8 => Content::Nodes(Vec::with_capacity(1)),
@@ -67,7 +68,7 @@ impl Node {
     pub fn get(&self, addr: &Addr) -> bool {
         match self.index.search(addr) {
             KeyState::Run(_key) => true,
-            KeyState::Found(_key, offset) => {
+            KeyState::Node(_key, offset) => {
                 match &self.content {
                     Content::Bits(vec) => {
                         vec[offset] & 0x1 << addr.key(0) > 0
@@ -109,7 +110,7 @@ impl Node {
     fn set_bits(index: &mut KeyIndex, vec: &mut Vec<u64>, addr: &Addr) {
         match index.search(addr) {
             KeyState::Run(_key) => (),  
-            KeyState::Found(_key, offset) => {
+            KeyState::Node(_key, offset) => {
                 // Update existing bitmask
                 let newbits = vec[offset] | 0x1 << addr.key(0);
                 if newbits == u64::MAX {
@@ -134,7 +135,7 @@ impl Node {
     fn set_nodes(index: &mut KeyIndex, vec: &mut Vec<Node>, addr: &Addr) {
         match index.search(addr) {
             KeyState::Run(_key) => (),    // No-op to set on a run
-            KeyState::Found(_key, offset) => {
+            KeyState::Node(_key, offset) => {
                 // Tell child node to set bit
                 vec[offset].set(addr);
                 if vec[offset].index.is_all_runs() {
@@ -164,7 +165,7 @@ impl Node {
                 vec.push(bitmask);
                 index.set(addr); 
             },
-            KeyState::Found(_key, offset) => {
+            KeyState::Node(_key, offset) => {
                 // Update existing bitmask
                 let bitmask = !(0x1 << addr.key(0));  
                 let newbits = vec[offset] & bitmask;
@@ -197,7 +198,7 @@ impl Node {
                 vec.push(node); 
                 index.set(addr);  
             },
-            KeyState::Found(_key, offset) => {
+            KeyState::Node(_key, offset) => {
                 vec[offset].clear(addr);
                 index.clear(addr);
             },
@@ -218,6 +219,76 @@ impl Clone for Node {
             index: self.index.clone(),
             content: content
         }
+    }
+}
+
+// Iterator for bit numbers is given a starting Addr
+impl Node {
+    pub fn iter(&self, addr: Addr) -> NodeIterator {
+        let mut index_iter = self.index.iter();
+        let key_state = index_iter.next();
+
+        NodeIterator {
+            node: self,
+            index_iter, 
+            key_state, 
+            addr: addr, // Includes keys from higher levels
+        }
+    }
+}
+
+pub struct NodeIterator<'a> {
+    node: &'a Node,
+    index_iter: KeyIndexIterator<'a>,
+    key_state: Option<KeyState>,
+    addr: Addr,
+}
+
+impl<'a> Iterator for NodeIterator<'a> {
+    type Item = Addr;
+    // EYE - Should pass an Addr around, but return
+    // u64 (bitno). This simplifies iterating through
+    // runs
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // EYE - Need Addr methods to show the range
+        // of values for a given Addr prefix and level
+        // - do we need different types of iterators?
+        let mut result = None;
+
+        match self.key_state {
+            Some(KeyState::Node(key, offset)) => {
+                match &self.node.content {
+                    Content::Nodes(_vec) => {
+                        // Get iterator for the child
+                        let mut child_addr = self.addr.clone();
+                        child_addr.set(self.node.level() - 1, key);
+                        // EYE - how do we get back here...
+                        // - need to map this out
+                        // - Can't have iterator containing iterator
+                        // as size is undefined (unless we box)
+                        // 
+                        // EYE - Use a NodeContentIterator enum which 
+                        // has iterators for Run, Bits, or Nodes
+                        // - Consider putting modules into src/node/node.rs
+                        //   and src/node/node_test.rs, .../node_iter.rs, etc
+                        // - This gives us private node::iter and node::test submodules
+                    },
+                    Content::Bits(_vec) => {
+                        // EYE - basically need a Bits iterator...
+                    },
+                }
+
+                // EYE need to iterate on the child
+            },
+            Some(KeyState::Run(key)) => {
+                // Use Addr method to get start and
+                // end bitno. Keep this in the iterator
+                // and iterate over the bits.
+            },
+            _ => ()
+        }
+        result
     }
 }
 
