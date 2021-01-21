@@ -6,5 +6,4 @@ pub use self::bitvec256::BitVec256;
 pub use self::iter::BitVec256Iterator;
 
 #[cfg(test)]
-#[path = "./tests.rs"]
 mod tests;

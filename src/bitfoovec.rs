@@ -70,4 +70,3 @@ impl Clone for BitFooVec {
 #[cfg(test)]
 #[path = "./tests/bitfoovec_test.rs"]
 mod tests;
-

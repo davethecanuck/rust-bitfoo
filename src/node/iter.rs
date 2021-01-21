@@ -1,13 +1,81 @@
 use crate::{Addr,KeyState,KeyIndexIterator};
 use std::iter::Iterator;
-use crate::Node;
+use super::Node;
 use super::Content;
 
+// Define iterators for the 3 types of content
+// we may run into. Bits/Node are Node Contents, 
+// whereas Run is from a KeyIndex
+enum ChildIterator<'a> {
+    End,
+    Run(RunIterator),
+    Bits(BitsIterator),
+    Node(Box<NodeIterator<'a>>),
+}
+
+struct RunIterator {
+}
+
+impl RunIterator {
+    fn new(key: u8) -> RunIterator {
+        RunIterator {}
+    }
+}
+
+struct BitsIterator {
+}
+
+impl BitsIterator {
+    fn new(bits: u64) -> BitsIterator {
+        BitsIterator {}
+    }
+}
+
 pub struct NodeIterator<'a> {
-    pub (super) node: &'a Node,
-    pub (super) index_iter: KeyIndexIterator<'a>,
-    pub (super) key_state: Option<KeyState>,
-    pub (super) addr: Addr,
+    addr: Addr,
+    node: &'a Node,
+    index_iter: KeyIndexIterator<'a>,
+    key_state: Option<KeyState>,
+    child_iter: ChildIterator<'a>,
+}
+
+impl<'a> NodeIterator<'a> {
+    pub fn new(node: &'a Node, addr: Addr) -> NodeIterator {
+        let mut index_iter = node.index.iter();
+        let key_state = index_iter.next();
+
+        let child_iter = match key_state {
+            Some(KeyState::Node(key, offset)) => {
+                // Iterator for child node
+                match &node.content {
+                    Content::Bits(vec) => {
+                        let child_bits = vec[offset];
+                        ChildIterator::Bits(BitsIterator::new(child_bits))
+                    },
+                    Content::Nodes(vec) => {
+                        let child_node = &vec[offset];
+                        ChildIterator::Node(
+                            Box::new(
+                                child_node.iter(addr.clone())
+                            )
+                        )
+                    },
+                }
+            },
+            Some(KeyState::Run(key)) => {
+                ChildIterator::Run(RunIterator::new(key))
+            },
+            _ => ChildIterator::End
+        };
+    
+        NodeIterator {
+            addr: addr, 
+            node: node,
+            index_iter, 
+            key_state, 
+            child_iter,
+        }
+    }
 }
 
 impl<'a> Iterator for NodeIterator<'a> {

@@ -98,6 +98,11 @@ impl Node {
             }
         }
     }
+
+    // Iterator for bit numbers is given a starting Addr
+    pub fn iter(&self, addr: Addr) -> NodeIterator {
+        NodeIterator::new(self, addr)
+    }
 }
 
 // Private helper functions.
@@ -217,21 +222,6 @@ impl Clone for Node {
         Node { 
             index: self.index.clone(),
             content: content
-        }
-    }
-}
-
-// Iterator for bit numbers is given a starting Addr
-impl Node {
-    pub fn iter(&self, addr: Addr) -> NodeIterator {
-        let mut index_iter = self.index.iter();
-        let key_state = index_iter.next();
-
-        NodeIterator {
-            node: self,
-            index_iter, 
-            key_state, 
-            addr: addr, // Includes keys from higher levels
         }
     }
 }
