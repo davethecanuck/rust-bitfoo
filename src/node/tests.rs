@@ -1,3 +1,5 @@
+use std::vec::Vec;
+
 #[cfg(test)]
 use crate::{Node,Addr};
 
@@ -119,4 +121,24 @@ fn set_clear_and_index() {
             assert_eq!(false, node[curr_bit]);
         }
     }
+}
+
+#[test]
+fn iter_bits() {
+    // Set bits in the 0 - 256*64 range (raw bits)
+    let in_bits = vec![0_u64, 1, 5, 16, 63, 255, 64*255, 64*256-1];
+    let mut node = Node::new(1);
+
+    for bitno in &in_bits {
+        node.set(&Addr::new(*bitno));
+    }
+   
+    // Iterate and see if we get out the same thing
+    let mut out_bits = Vec::new();
+    let start_addr = Addr::new(0);
+    for bitno in node.iter(start_addr) {
+        out_bits.push(bitno);
+    }
+
+    assert_eq!(in_bits, out_bits);
 }

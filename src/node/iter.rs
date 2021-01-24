@@ -34,11 +34,22 @@ impl Iterator for RunIterator {
 
 // Iterator for raw level 0 bits
 struct BitsIterator {
+    starting_bit: u64, 
+    bits: u64,
+    bitno: u64,
 }
 
 impl BitsIterator {
-    fn new(bits: u64) -> BitsIterator {
-        BitsIterator {}
+    fn new(addr: &mut Addr, key: u8, bits: u64) -> BitsIterator {
+        // Set starting bit for the level 0 bits
+        addr.set(0, 0);
+        let starting_bit = addr.bitno() + key as u64 *64;
+
+        BitsIterator {
+            starting_bit, 
+            bits,
+            bitno: 0,    // EYE - Add Addr starting value
+        }
     }
 }
 
@@ -46,8 +57,22 @@ impl Iterator for BitsIterator {
     type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // EYE TBD
-        None
+        if self.bitno >= 64 {
+            return None
+        }
+        else {
+            let word = self.bits >> self.bitno;
+            let offset = word.trailing_zeros() as u64;
+
+            if offset >= 64 {
+                None
+            }
+            else {
+                let retval = self.bitno + offset;
+                self.bitno = retval + 1;
+                Some(retval + self.starting_bit)
+            }
+        }
     }
 }
 
@@ -87,7 +112,9 @@ impl<'a> NodeIterator<'a> {
                 match &self.node.content {
                     Content::Bits(vec) => {
                         let child_bits = vec[offset];
-                        ChildIterator::Bits(BitsIterator::new(child_bits))
+                        ChildIterator::Bits(
+                            BitsIterator::new(&mut self.addr.clone(), key, child_bits)
+                        )
                     },
                     Content::Nodes(vec) => {
                         let child_node = &vec[offset];
