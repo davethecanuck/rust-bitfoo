@@ -15,11 +15,18 @@ enum ChildIterator<'a> {
 
 // Iterator for run bits
 struct RunIterator {
+    curr_bit: u64,
+    end_bit: u64,
 }
 
 impl RunIterator {
-    fn new(key: u8) -> RunIterator {
-        RunIterator {}
+    fn new(addr: &mut Addr, key: u8, level: u8) -> RunIterator {
+        addr.set(level, key);
+
+        RunIterator {
+            curr_bit: addr.min_bitno(level), 
+            end_bit: addr.max_bitno(level),
+        }
     }
 }
 
@@ -27,28 +34,35 @@ impl Iterator for RunIterator {
     type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // EYE TBD
-        None
+        if self.curr_bit <= self.end_bit {
+            let retval = self.curr_bit;
+            self.curr_bit += 1;
+            Some(retval)
+        }
+        else {
+            None
+        }
     }
 }
 
 // Iterator for raw level 0 bits
 struct BitsIterator {
-    starting_bit: u64, 
+    start_bit: u64, 
     bits: u64,
     bitno: u64,
 }
 
 impl BitsIterator {
     fn new(addr: &mut Addr, key: u8, bits: u64) -> BitsIterator {
-        // Set starting bit for the level 0 bits
-        addr.set(0, 0);
-        let starting_bit = addr.bitno() + key as u64 *64;
+        // Level 1 is set to the current key
+        // EYE - why not level 0? Key would be level 1 key
+        addr.set(1, key);
+        let start_bit = addr.min_bitno(0);
 
         BitsIterator {
-            starting_bit, 
+            start_bit, 
             bits,
-            bitno: 0,    // EYE - Add Addr starting value
+            bitno: 0, // This is relative to the start of our bits
         }
     }
 }
@@ -57,21 +71,15 @@ impl Iterator for BitsIterator {
     type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.bitno >= 64 {
-            return None
+        if self.bitno >= 63 {
+            None
         }
         else {
             let word = self.bits >> self.bitno;
             let offset = word.trailing_zeros() as u64;
-
-            if offset >= 64 {
-                None
-            }
-            else {
-                let retval = self.bitno + offset;
-                self.bitno = retval + 1;
-                Some(retval + self.starting_bit)
-            }
+            let retval = self.bitno + offset;
+            self.bitno = retval + 1;
+            Some(retval + self.start_bit)
         }
     }
 }
@@ -120,6 +128,7 @@ impl<'a> NodeIterator<'a> {
                         let child_node = &vec[offset];
                         ChildIterator::Node(
                             Box::new(
+                                // EYE - do we need to pass in the key/level?
                                 child_node.iter(self.addr.clone())
                             )
                         )
@@ -127,7 +136,9 @@ impl<'a> NodeIterator<'a> {
                 }
             },
             Some(KeyState::Run(key)) => {
-                ChildIterator::Run(RunIterator::new(key))
+                ChildIterator::Run(
+                    RunIterator::new(&mut self.addr.clone(), key, self.node.level())
+                )
             },
             _ => ChildIterator::End
         };

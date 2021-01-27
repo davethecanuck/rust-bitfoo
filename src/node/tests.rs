@@ -142,3 +142,25 @@ fn iter_bits() {
 
     assert_eq!(in_bits, out_bits);
 }
+
+#[test]
+fn iter_run() {
+    // Set all bits to form runs for the first 2 keys
+    let mut node = Node::new(1);
+    let start_bit = 1 * 64;
+    let end_bit = 3 * 64 - 1;
+    let mut in_bits = Vec::new();
+
+    for b in start_bit..=end_bit {
+        node.set(&Addr::new(b));
+        in_bits.push(b);
+    }
+
+    // Iterate over the runs and compare to our expected
+    // input bits
+    let mut out_bits = Vec::new();
+    for b in node.iter(Addr::new(0)) {
+        out_bits.push(b);
+    }
+    assert_eq!(in_bits, out_bits);
+}

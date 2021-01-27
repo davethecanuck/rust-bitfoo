@@ -12,9 +12,9 @@ fn main() {
     // Set initial node to be the same level as the
     // addr of the last bit
     let addr = Addr::new(numbits);
-    let mut node = Node::new(addr.level);
+    let mut node = Node::new(addr.node_level);
     println!("Setting {} bits on {} level node...", 
-             numbits, addr.level);
+             numbits, addr.node_level);
 
     println!("Start bit SET: {:?}", SystemTime::now());
     for bitno in 0..numbits {

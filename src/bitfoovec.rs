@@ -26,7 +26,7 @@ impl BitFooVec {
         let addr = Addr::new(bitno);
         let mut level = self.level();
 
-        while addr.level > level {
+        while addr.node_level > level {
             // Replace root with new one at next level up
             level += 1;
             let old_root = std::mem::replace(
@@ -41,7 +41,7 @@ impl BitFooVec {
     // Return state of this bit
     pub fn get(&self, bitno: u64) -> bool {
         let addr = Addr::new(bitno);
-        if addr.level > self.level() {
+        if addr.node_level > self.level() {
             false
         }
         else {
@@ -53,7 +53,7 @@ impl BitFooVec {
         // Don't need to insert nodes to represent a high bit
         // 0 - it's already implied to be 0
         let addr = Addr::new(bitno);
-        if addr.level <= self.level() {
+        if addr.node_level <= self.level() {
             self.root_node.clear(&addr);
         }
     }
