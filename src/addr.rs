@@ -13,7 +13,7 @@ const LEVEL_PARAM:[(u64, u64, u64, u8);10] = [
     (6+5*8, 0xff, 0x3f_ff_ff_ff_ff_ff_ff, 6),
     (6+6*8, 0xff, 0x3f_ff_ff_ff_ff_ff_ff_ff, 7),
     (6+7*8, 0xff, 0xff_ff_ff_ff_ff_ff_ff_ff, 8),
-    (8*8, 0xff, 0xff_ff_ff_ff_ff_ff_ff_ff, 9), // One node at top level
+    (  8*8, 0xff, 0xff_ff_ff_ff_ff_ff_ff_ff, 9), // One node at top level
 ];
 
 // Container giving key by level for a u64 bitno
@@ -35,8 +35,7 @@ impl Addr {
             let param = LEVEL_PARAM[i as usize];
             addr.key[i] = ((bitno >> param.0) & param.1) as u8;
 
-            // Set the level of the node that can contain
-            // this bitno
+            // Set the level of the node that can contain this bitno
             addr.node_level = param.3;
             if bitno <= param.2 {
                 break;
@@ -76,17 +75,8 @@ impl Addr {
 
     // Return the lowest bitno for our address at the given level
     pub fn min_bitno(&self, level: u8) -> u64 {
-        // EYE - validate the shift - perhaps should be the next level?
         let mask = u64::MAX << Addr::offset(level);
         self.bitno() & mask
-
-        /* EYE the above should be equivalent
-        let mut addr = self.clone();
-        for lev in 0..level {  // Set everything below the level to 0
-            addr.set(lev, 0);
-        }
-        addr.bitno()
-        */
     }
 
     // Return the highest bitno for our address at the given level

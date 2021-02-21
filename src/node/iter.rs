@@ -20,7 +20,8 @@ struct RunIterator {
 }
 
 impl RunIterator {
-    fn new(addr: &mut Addr, key: u8, level: u8) -> RunIterator {
+    fn new(parent_addr: &Addr, key: u8, level: u8) -> RunIterator {
+        let mut addr = parent_addr.clone();
         addr.set(level, key);
 
         RunIterator {
@@ -53,9 +54,9 @@ struct BitsIterator {
 }
 
 impl BitsIterator {
-    fn new(addr: &mut Addr, key: u8, bits: u64) -> BitsIterator {
+    fn new(parent_addr: &Addr, key: u8, bits: u64) -> BitsIterator {
         // Level 1 is set to the current key
-        // EYE - why not level 0? Key would be level 1 key
+        let mut addr = parent_addr.clone();
         addr.set(1, key);
         let start_bit = addr.min_bitno(0);
 
@@ -95,7 +96,7 @@ pub struct NodeIterator<'a> {
 impl<'a> NodeIterator<'a> {
     pub fn new(node: &'a Node, addr: Addr) -> NodeIterator {
         NodeIterator {
-            addr, 
+            addr: addr.clone(), 
             node,
             index_iter: node.index.iter(), 
             child_iter: ChildIterator::End,
@@ -119,12 +120,18 @@ impl<'a> NodeIterator<'a> {
                 // Iterator for child node
                 match &self.node.content {
                     Content::Bits(vec) => {
+                        println!("update_child_iter: Bits({}) \
+                            offset={} key={} addr={:?}", 
+                            self.node.level(), offset, key, self.addr);
                         let child_bits = vec[offset];
                         ChildIterator::Bits(
-                            BitsIterator::new(&mut self.addr.clone(), key, child_bits)
+                            BitsIterator::new(&self.addr, key, child_bits)
                         )
                     },
                     Content::Nodes(vec) => {
+                        println!("update_child_iter: Nodes({}) \
+                            offset={} key={} addr={:?}", 
+                            self.node.level(), offset, key, self.addr);
                         let child_node = &vec[offset];
                         ChildIterator::Node(
                             Box::new(
@@ -136,8 +143,10 @@ impl<'a> NodeIterator<'a> {
                 }
             },
             Some(KeyState::Run(key)) => {
+                println!("update_child_iter: Run({}) key={} addr={:?}", 
+                    self.node.level(), key, self.addr);
                 ChildIterator::Run(
-                    RunIterator::new(&mut self.addr.clone(), key, self.node.level())
+                    RunIterator::new(&self.addr, key, self.node.level())
                 )
             },
             _ => ChildIterator::End

@@ -164,3 +164,21 @@ fn iter_run() {
     }
     assert_eq!(in_bits, out_bits);
 }
+
+#[test]
+fn iter_node() {
+    let mut node = Node::new(8);
+    let in_bits = vec![0_u64, 0xff, 0xff_ff, 0xff_00_01, 
+        0xff_00_02, 0xff_ff_ff_ff, u64::MAX];
+
+    for b in &in_bits {
+        node.set(&Addr::new(*b));
+    }
+
+    let mut out_bits = Vec::new();
+    for b in node.iter(Addr::new(0)) {
+        out_bits.push(b);
+    }
+    println!("node is {:?}", node);
+    assert_eq!(in_bits, out_bits);
+}

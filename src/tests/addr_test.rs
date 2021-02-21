@@ -3,24 +3,35 @@ use crate::Addr;
 
 #[test]
 fn addr_to_bitno() {
-    for bitno in 0..=0x3f_ff + 1 {
+    for bitno in vec![0, 1, 0x3f_ff, 0x3f_ff_ff, u64::MAX] {
         let addr = Addr::new(bitno);
         assert_eq!(bitno, addr.bitno());
     }
 }
 
 #[test]
+fn clone() {
+    let input = vec![0_u64, 100000, u64::MAX];
+    let mut output = Vec::<u64>::new();
+
+    for b in &input {
+        let addr = Addr::new(*b);
+        output.push(addr.clone().bitno());
+    }
+
+    for i in 0..output.len() {
+        assert_eq!(output[i], input[i]);
+    }
+}
+
+#[test]
 fn min_max() {
     for level in 1_u8..=8 {
-        // Create Addr object for various bit values with different
-        // node levels
         for b in &[0_u64, 1, 0x3f, 0x3f_ff, 0x3f_ff_ff, 
                 0x3f_ff_ff_ff, u64::MAX] {  
-                    // EYE - not working at max
-            let addr = Addr::new(*b);
-
             // Minimum bitno is where all of the lower bits are 0 below
             // our level. Max is this plus the cardinality of this level.
+            let addr = Addr::new(*b);
             let expected_min = (u64::MAX << Addr::offset(level)) & addr.bitno();
             let expected_max = expected_min + Addr::cardinality(level);
             assert_eq!(addr.min_bitno(level), expected_min);

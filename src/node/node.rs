@@ -101,6 +101,7 @@ impl Node {
 
     // Iterator for bit numbers is given a starting Addr
     pub fn iter(&self, addr: Addr) -> NodeIterator {
+        println!("*** Node.iter level={} addr={:?}", self.level(), addr);
         NodeIterator::new(self, addr)
     }
 }
