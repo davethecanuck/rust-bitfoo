@@ -1,10 +1,44 @@
+use std::fmt;
 use crate::{Addr,KeyIndex,KeyState};
 use crate::node::iter::NodeIterator;
 
-#[derive(Debug)]
 pub enum Content {
     Bits(Vec<u64>),
     Nodes(Vec<Node>),
+}
+
+// Debug interface for Content
+impl fmt::Debug for Content {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Content::Bits(v) => {
+                // Write first and last few elements of vector in hex
+                write!(f, "Bits[len={}]:[ ", v.len())?;
+                for (i, element) in v.iter().enumerate().rev() {
+                    if i < 3 || i >= (v.len() - 3) {
+                        write!(f, "{}:[{:#b}] ", i, element)?;
+                    }
+                    else if i == 3 {
+                        write!(f, "{}", ".....".to_string())?;
+                    }
+                }
+                write!(f, "{}", "]".to_string())
+            },
+            Content::Nodes(v) => {
+                // Write first and last few elements of vector in hex
+                write!(f, "Nodes[len={}]:[ ", v.len())?;
+                for (i, element) in v.iter().enumerate().rev() {
+                    if i < 3 || i > (v.len() - 3) {
+                        write!(f, "{}:[{:?}] ", i, element)?;
+                    }
+                    else if i == 3 {
+                        write!(f, "{}", ".....".to_string())?;
+                    }
+                }
+                write!(f, "{}", "]".to_string())
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -99,17 +133,16 @@ impl Node {
         }
     }
 
-    // Iterator for bit numbers is given a starting Addr
-    pub fn iter(&self, addr: Addr) -> NodeIterator {
-        println!("*** Node.iter level={} addr={:?}", self.level(), addr);
-        NodeIterator::new(self, addr)
+    // Bitno iterator starting from a node
+    pub fn iter(&self) -> NodeIterator {
+        NodeIterator::new(self, Addr::new(0))
     }
 }
 
 // Private helper functions.
 // NOTE: No &self passed in as we want to avoid obtaining
 // a second mutable borrow on &self. Instead we are passing in the
-// structure elements as mustable references
+// structure elements as mutable references
 impl Node {
     // Set a bit for a 'Bits' type content
     fn set_bits(index: &mut KeyIndex, vec: &mut Vec<u64>, addr: &Addr) {

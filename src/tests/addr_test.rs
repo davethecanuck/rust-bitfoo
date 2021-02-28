@@ -33,7 +33,7 @@ fn min_max() {
             // our level. Max is this plus the cardinality of this level.
             let addr = Addr::new(*b);
             let expected_min = (u64::MAX << Addr::offset(level)) & addr.bitno();
-            let expected_max = expected_min + Addr::cardinality(level-1);
+            let expected_max = expected_min + Addr::child_cardinality(level);
             assert_eq!(addr.min_bitno(level), expected_min);
             assert_eq!(addr.max_bitno(level), expected_max);
         }
@@ -44,12 +44,9 @@ fn min_max() {
 fn keys_and_level() {
     // Level 1 addresses
     for level in 0_u8..=8 {
-        let min_bitno = match level {
-            0 => 0, 
-            _ => Addr::cardinality(level-1) + 1
-        };
+        let min_bitno = Addr::child_cardinality(level) + 1;
         check_key_and_level(level, min_bitno);
-        let max_bitno = Addr::cardinality(level);
+        let max_bitno = Addr::max_bit(level);
         check_key_and_level(level, max_bitno);
     }
 }

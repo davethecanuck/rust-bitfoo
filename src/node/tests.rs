@@ -4,6 +4,17 @@ use std::vec::Vec;
 use crate::{Node,Addr};
 
 #[test]
+fn simple_set_get() {
+    let mut node = Node::new(1);
+    for bitno in [0_u64, 2, 63, 64, 127, 128].iter() {
+        let addr = Addr::new(*bitno);
+        node.set(&addr);
+        assert_eq!(node.get(&addr), true);
+        println!("Set bitno={:#x}: node={:#?}", bitno, node);
+    }
+}
+
+#[test]
 fn node_index_l1() {
     // Verify index is empty on node creation
     let mut node = Node::new(1);
@@ -85,7 +96,6 @@ fn node_set_all_l1() {
     }
 
     // All child nodes should be set, so it should be a run
-    println!("ALL SET: index = {:?}:", node.index);
     assert_eq!(node.index.is_nodes_empty(), true);
     assert_eq!(node.index.is_nodes_full(), false);
     assert_eq!(node.index.is_runs_empty(), false);
@@ -98,7 +108,6 @@ fn node_set_all_l1() {
     assert_eq!(node.index.is_node(&addr), false);
 
     node.clear(&Addr::new(0));
-    println!("FIRST bit cleared: index = {:?}:", node.index);
     assert_eq!(node.index.is_run(&addr), false);
     assert_eq!(node.index.is_node(&addr), true);
 }
@@ -108,17 +117,21 @@ fn set_clear_and_index() {
     for level in 1..=8 {
         // Test some boundary bits in each node level
         let mut node = Node::new(level);
-        let bit_mult = 256 * (level as u64 - 1);  // 256 u64's at each level
-        let input_bits = [ 0_64, 0 * bit_mult, (64*256-1) * bit_mult ];
+        let input_bits = vec![0_u64, 1,  
+            Addr::child_cardinality(level), 
+            Addr::child_cardinality(level) + 1, 
+            Addr::max_bit(level)];
+        println!("set_clear_and_index: level={} child_cardinality={:x} max_bit={:x}", 
+            level, Addr::child_cardinality(level), Addr::max_bit(level));
+        println!("    node={:?}", node);
 
-        for bitno in &input_bits {
-            let curr_bit = *bitno as u64;
-            println!("Testing bit {:#b}", curr_bit);
-            assert_eq!(false, node[curr_bit]);
-            node.set(&Addr::new(curr_bit));
-            assert_eq!(true, node[curr_bit]);
-            node.clear(&Addr::new(curr_bit));
-            assert_eq!(false, node[curr_bit]);
+        for bitno in input_bits {
+            println!("Testing bit={:x}", bitno);
+            assert_eq!(false, node[bitno]);
+            node.set(&Addr::new(bitno));
+            assert_eq!(true, node[bitno]);
+            node.clear(&Addr::new(bitno));
+            assert_eq!(false, node[bitno]);
         }
     }
 }
@@ -126,17 +139,20 @@ fn set_clear_and_index() {
 #[test]
 fn iter_bits() {
     // Set bits in the 0 - 256*64 range (raw bits)
-    let in_bits = vec![0_u64, 1, 5, 16, 63, 255, 64*255, 64*256-1];
+    let in_bits = vec![0_u64, 1, 0x3f, 0x40, 0x3fff];
     let mut node = Node::new(1);
+    println!("iter_bits: in_bits={:?}", in_bits);
 
     for bitno in &in_bits {
-        node.set(&Addr::new(*bitno));
+        let addr = Addr::new(*bitno);
+        println!("    iter_bits  SET1: bitno={:x} addr={:?}", bitno, addr);
+        node.set(&addr);
+        println!("    iter_bits  SET2: node={:?}", node);
     }
    
     // Iterate and see if we get out the same thing
     let mut out_bits = Vec::new();
-    let start_addr = Addr::new(0);
-    for bitno in node.iter(start_addr) {
+    for bitno in node.iter() {
         out_bits.push(bitno);
     }
 
@@ -159,7 +175,7 @@ fn iter_run() {
     // Iterate over the runs and compare to our expected
     // input bits
     let mut out_bits = Vec::new();
-    for b in node.iter(Addr::new(0)) {
+    for b in node.iter() {
         out_bits.push(b);
     }
     assert_eq!(in_bits, out_bits);
@@ -168,17 +184,17 @@ fn iter_run() {
 #[test]
 fn iter_node() {
     let mut node = Node::new(8);
-    let in_bits = vec![0_u64, 0xff, 0xff_ff, 0xff_00_01, 
-        0xff_00_02, 0xff_ff_ff_ff, u64::MAX];
+    let in_bits = vec![0_u64, 0x3f, 0x40, 0x3f_ff, 0x40_00, 
+        0x3f_ff_ff, 0x40_00_00, u64::MAX];
 
     for b in &in_bits {
         node.set(&Addr::new(*b));
     }
 
     let mut out_bits = Vec::new();
-    for b in node.iter(Addr::new(0)) {
+    for b in node.iter() {
         out_bits.push(b);
     }
-    println!("node is {:?}", node);
+    //println!("node is {:?}", node);
     assert_eq!(in_bits, out_bits);
 }

@@ -49,21 +49,24 @@ impl Iterator for RunIterator {
 // Iterator for raw level 0 bits
 struct BitsIterator {
     start_bit: u64, 
-    bits: u64,
-    bitno: u64,
+    raw_bits: u64,
+    curr_bit: u64,
 }
 
 impl BitsIterator {
-    fn new(parent_addr: &Addr, key: u8, bits: u64) -> BitsIterator {
+    fn new(parent_addr: &Addr, key: u8, raw_bits: u64) -> BitsIterator {
         // Level 1 is set to the current key
         let mut addr = parent_addr.clone();
         addr.set(1, key);
-        let start_bit = addr.min_bitno(0);
+        let start_bit = addr.min_bitno(1);
+        println!("BitsIterator.new: parent_addr={:?} addr={:?} key={:x} \
+            raw_bits={:x} start_bit={:x}", 
+            parent_addr, addr, key, raw_bits, start_bit);
 
         BitsIterator {
             start_bit, 
-            bits,
-            bitno: 0, // This is relative to the start of our bits
+            raw_bits,
+            curr_bit: 0, // This is relative to the start_bit
         }
     }
 }
@@ -72,15 +75,25 @@ impl Iterator for BitsIterator {
     type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.bitno >= 63 {
+        if self.curr_bit > 63 {
+            // Last iteration incremented us to the end of the word
             None
         }
         else {
-            let word = self.bits >> self.bitno;
-            let offset = word.trailing_zeros() as u64;
-            let retval = self.bitno + offset;
-            self.bitno = retval + 1;
-            Some(retval + self.start_bit)
+            let word = self.raw_bits >> self.curr_bit;
+            let trailing_zeros = word.trailing_zeros() as u64;
+            let word_bit = self.curr_bit + trailing_zeros;
+
+            if word_bit > 63 {
+                // 0's all the way to the most-significant-bit
+                return None
+            }
+            else {
+                // Increment our current bit before returning
+                let retval = self.start_bit + word_bit;
+                self.curr_bit = word_bit + 1;
+                Some(retval)
+            }
         }
     }
 }
@@ -96,7 +109,7 @@ pub struct NodeIterator<'a> {
 impl<'a> NodeIterator<'a> {
     pub fn new(node: &'a Node, addr: Addr) -> NodeIterator {
         NodeIterator {
-            addr: addr.clone(), 
+            addr,
             node,
             index_iter: node.index.iter(), 
             child_iter: ChildIterator::End,
@@ -120,7 +133,7 @@ impl<'a> NodeIterator<'a> {
                 // Iterator for child node
                 match &self.node.content {
                     Content::Bits(vec) => {
-                        println!("update_child_iter: Bits({}) \
+                        println!("update_child_iter: Bits(level={}) \
                             offset={} key={} addr={:?}", 
                             self.node.level(), offset, key, self.addr);
                         let child_bits = vec[offset];
@@ -129,21 +142,24 @@ impl<'a> NodeIterator<'a> {
                         )
                     },
                     Content::Nodes(vec) => {
-                        println!("update_child_iter: Nodes({}) \
+                        println!("update_child_iter: Nodes(level={}) \
                             offset={} key={} addr={:?}", 
                             self.node.level(), offset, key, self.addr);
+
                         let child_node = &vec[offset];
+                        let mut addr = self.addr.clone();
+                        addr.set(self.node.level(), key);
+
                         ChildIterator::Node(
                             Box::new(
-                                // EYE - do we need to pass in the key/level?
-                                child_node.iter(self.addr.clone())
+                                NodeIterator::new(child_node, addr)
                             )
                         )
                     },
                 }
             },
             Some(KeyState::Run(key)) => {
-                println!("update_child_iter: Run({}) key={} addr={:?}", 
+                println!("update_child_iter: Run(level={}) key={} addr={:?}", 
                     self.node.level(), key, self.addr);
                 ChildIterator::Run(
                     RunIterator::new(&self.addr, key, self.node.level())

@@ -2,7 +2,7 @@ use std::fmt;
 
 // Constant to get bit shift and mask for each 
 // level of the tree
-// (bit_offset, mask, cardinality, node_level)
+// (bit_offset, mask, max_bit, node_level)
 const LEVEL_PARAM:[(u64, u64, u64, u8);10] = [
     (0,     0x3f, 0x3f, 0),        // 6 bits for within the leaf node
     (6+0*8, 0xff, 0x3f_ff, 1),     // 8 bits for all other levels
@@ -52,10 +52,18 @@ impl Addr {
         }
     }
 
-    // Return cardinality for a node at this level
-    pub fn cardinality(level: u8) -> u64 {
+    // Return the max bit number for a node at this level
+    pub fn max_bit(level: u8) -> u64 {
         match level {
             0..=9 => LEVEL_PARAM[level as usize].2,
+            _ => 0,
+        }
+    }
+
+    // Return the cardinality of a child node from this level
+    pub fn child_cardinality(level: u8) -> u64 {
+        match level {
+            1..=9 => LEVEL_PARAM[(level-1) as usize].2,
             _ => 0,
         }
     }
@@ -95,7 +103,7 @@ impl Addr {
     pub fn max_bitno(&self, level: u8) -> u64 {
         match level {
             1..=9 => {
-                self.min_bitno(level) + Addr::cardinality(level-1)
+                self.min_bitno(level) + Addr::child_cardinality(level)
             },
             _ => 0,
         }
@@ -110,7 +118,12 @@ impl Addr {
 
     pub fn set(&mut self, level: u8, key: u8) {
         match level {
-            0..=9 => self.key[level as usize] = key,
+            0..=9 => {
+                self.key[level as usize] = key;
+                if level > self.node_level {
+                    self.node_level = level;
+                }
+            },
             _ => (),
         }
     }

@@ -115,4 +115,3 @@ impl fmt::Debug for BitVec256 {
                self.data[3], self.data[2], self.data[1], self.data[0])
     }
 }
-
