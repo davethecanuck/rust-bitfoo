@@ -59,9 +59,6 @@ impl BitsIterator {
         let mut addr = parent_addr.clone();
         addr.set(1, key);
         let start_bit = addr.min_bitno(1);
-        println!("BitsIterator.new: parent_addr={:?} addr={:?} key={:x} \
-            raw_bits={:x} start_bit={:x}", 
-            parent_addr, addr, key, raw_bits, start_bit);
 
         BitsIterator {
             start_bit, 
@@ -133,19 +130,12 @@ impl<'a> NodeIterator<'a> {
                 // Iterator for child node
                 match &self.node.content {
                     Content::Bits(vec) => {
-                        println!("update_child_iter: Bits(level={}) \
-                            offset={} key={} addr={:?}", 
-                            self.node.level(), offset, key, self.addr);
                         let child_bits = vec[offset];
                         ChildIterator::Bits(
                             BitsIterator::new(&self.addr, key, child_bits)
                         )
                     },
                     Content::Nodes(vec) => {
-                        println!("update_child_iter: Nodes(level={}) \
-                            offset={} key={} addr={:?}", 
-                            self.node.level(), offset, key, self.addr);
-
                         let child_node = &vec[offset];
                         let mut addr = self.addr.clone();
                         addr.set(self.node.level(), key);
@@ -159,8 +149,6 @@ impl<'a> NodeIterator<'a> {
                 }
             },
             Some(KeyState::Run(key)) => {
-                println!("update_child_iter: Run(level={}) key={} addr={:?}", 
-                    self.node.level(), key, self.addr);
                 ChildIterator::Run(
                     RunIterator::new(&self.addr, key, self.node.level())
                 )

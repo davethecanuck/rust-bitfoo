@@ -55,9 +55,9 @@ impl Node {
         // Level 2+ contains up to 256 (2^8) child nodes
         let content = match level {
             1 => Content::Bits(Vec::with_capacity(1)),
-            2..=9 => Content::Nodes(Vec::with_capacity(1)),
+            2..=8 => Content::Nodes(Vec::with_capacity(1)),
             _ => {
-                panic!("Nodes can only be constructed with levels 1-9");
+                panic!("Nodes can only be constructed with levels 1-8");
             }
         };
                 

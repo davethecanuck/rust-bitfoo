@@ -1,16 +1,16 @@
-use crate::{Node,Addr};
+use crate::{Node,NodeIterator,Addr};
 
 // Main container for the bit vector
 #[derive(Debug)]
-pub struct BitFooVec {
+pub struct BitFoo {
     root_node: Node,
 }
 
 // Public interface
-impl BitFooVec {
+impl BitFoo {
     pub fn new() -> Self {
-        BitFooVec {
-            root_node: Node::new(1),  // EYE - Can this be level 9?
+        BitFoo {
+            root_node: Node::new(1)
         }
     }
 
@@ -57,16 +57,17 @@ impl BitFooVec {
             self.root_node.clear(&addr);
         }
     }
+
+    // Bitno iterator starting from a node
+    pub fn iter(&self) -> NodeIterator {
+        self.root_node.iter()
+    }
 }
 
-impl Clone for BitFooVec {
-    fn clone(&self) -> BitFooVec {
-        BitFooVec { 
+impl Clone for BitFoo {
+    fn clone(&self) -> BitFoo {
+        BitFoo { 
             root_node: self.root_node.clone(),
         }
     }
 }
-
-#[cfg(test)]
-#[path = "./tests/bitfoovec_test.rs"]
-mod tests;
