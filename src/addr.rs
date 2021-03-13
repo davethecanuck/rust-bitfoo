@@ -14,6 +14,7 @@ const LEVEL_PARAM:[(u64, u64, u64, u8);9] = [
     (6+6*8, 0xff, 0x3f_ff_ff_ff_ff_ff_ff_ff, 7),
     (6+7*8, 0xff, 0xff_ff_ff_ff_ff_ff_ff_ff, 8),
 ];
+pub const MAX_LEVEL:u8 = (LEVEL_PARAM.len() - 1) as u8;
 
 // Container giving key by level for a u64 bitno
 pub struct Addr{
@@ -46,7 +47,7 @@ impl Addr {
     // Return the bit mask for this level
     pub fn mask(level: u8) -> u64 {
         match level {
-            0..=8 => LEVEL_PARAM[level as usize].1,
+            0..=MAX_LEVEL => LEVEL_PARAM[level as usize].1,
             _ => 0,
         }
     }
@@ -54,7 +55,7 @@ impl Addr {
     // Return the max bit number for a node at this level
     pub fn max_bit(level: u8) -> u64 {
         match level {
-            0..=8 => LEVEL_PARAM[level as usize].2,
+            0..=MAX_LEVEL => LEVEL_PARAM[level as usize].2,
             _ => 0,
         }
     }
@@ -62,7 +63,7 @@ impl Addr {
     // Return the cardinality of a child node from this level
     pub fn child_cardinality(level: u8) -> u64 {
         match level {
-            1..=8 => LEVEL_PARAM[(level-1) as usize].2,
+            1..=MAX_LEVEL => LEVEL_PARAM[(level-1) as usize].2,
             _ => 0,
         }
     }
@@ -70,7 +71,7 @@ impl Addr {
     // Return bit offset (from u64) for this node level
     pub fn offset(level: u8) -> u64 {
         match level {
-            0..=8 => LEVEL_PARAM[level as usize].0,
+            0..=MAX_LEVEL => LEVEL_PARAM[level as usize].0,
             _ => 0,
         }
     }
@@ -90,7 +91,7 @@ impl Addr {
     // Return the lowest bitno for our address at the given level
     pub fn min_bitno(&self, level: u8) -> u64 {
         match level {
-            0..=8 => {
+            0..=MAX_LEVEL => {
                 let mask = u64::MAX << Addr::offset(level);
                 self.bitno() & mask
             },
@@ -101,7 +102,7 @@ impl Addr {
     // Return the highest bitno for our address at the given level
     pub fn max_bitno(&self, level: u8) -> u64 {
         match level {
-            1..=8 => {
+            1..=MAX_LEVEL => {
                 self.min_bitno(level) + Addr::child_cardinality(level)
             },
             _ => 0,
@@ -110,14 +111,14 @@ impl Addr {
 
     pub fn key(&self, level: u8) -> u8 {
         match level {
-            0..=8 => self.key[level as usize],
+            0..=MAX_LEVEL => self.key[level as usize],
             _ => 0,
         }
     }
 
     pub fn set(&mut self, level: u8, key: u8) {
         match level {
-            0..=8 => {
+            0..=MAX_LEVEL => {
                 self.key[level as usize] = key;
                 if level > self.node_level {
                     self.node_level = level;

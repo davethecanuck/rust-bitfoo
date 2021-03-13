@@ -1,6 +1,7 @@
 use std::fmt;
 use crate::{Addr,KeyIndex,KeyState};
 use crate::node::iter::NodeIterator;
+use crate::addr;
 
 pub enum Content {
     Bits(Vec<u64>),
@@ -55,9 +56,10 @@ impl Node {
         // Level 2+ contains up to 256 (2^8) child nodes
         let content = match level {
             1 => Content::Bits(Vec::with_capacity(1)),
-            2..=8 => Content::Nodes(Vec::with_capacity(1)),
+            2..=addr::MAX_LEVEL => Content::Nodes(Vec::with_capacity(1)),
             _ => {
-                panic!("Nodes can only be constructed with levels 1-8");
+                panic!("Nodes can only be constructed with levels 1-{}", 
+                    addr::MAX_LEVEL);
             }
         };
                 

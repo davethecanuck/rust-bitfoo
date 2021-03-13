@@ -1,4 +1,5 @@
 use std::vec::Vec;
+use crate::addr;
 
 #[cfg(test)]
 use crate::{Node,Addr};
@@ -114,7 +115,7 @@ fn node_set_all_l1() {
 
 #[test]
 fn set_clear_and_index() {
-    for level in 1..=8 {
+    for level in 1..=addr::MAX_LEVEL {
         // Test some boundary bits in each node level
         let mut node = Node::new(level);
         let input_bits = vec![0_u64, 1,  
@@ -183,7 +184,7 @@ fn iter_run() {
 
 #[test]
 fn iter_node() {
-    let mut node = Node::new(8);
+    let mut node = Node::new(addr::MAX_LEVEL);
     let in_bits = vec![0_u64, 0x3f, 0x40, 0x3f_ff, 0x40_00, 
         0x3f_ff_ff, 0x40_00_00, u64::MAX];
 
