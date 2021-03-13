@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::ops::{Index};
 use crate::BitFoo;
 
 // Static references for [] return values

@@ -1,4 +1,5 @@
 use std::vec::Vec;
+use crate::bitfoo;
 
 #[cfg(test)]
 use crate::BitFoo;
@@ -47,4 +48,13 @@ fn ops_index() {
     for i in 0..=0x40_00 {
         assert_eq!(bv[i], in_bits.contains(&i));
     }
+}
+
+#[test]
+fn macro_new() {
+    let bv = bitfoo![0, 1, 0x3f, 0x3fff, 0x4000, u64::MAX];
+    let expected = vec![0_u64, 1, 0x3f, 0x3fff, 0x4000, u64::MAX];
+    let mut output = Vec::<u64>::new();
+    bv.iter().for_each(|b| output.push(b));
+    assert_eq!(expected, output);
 }

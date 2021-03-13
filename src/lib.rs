@@ -1,3 +1,5 @@
+mod macros;
+
 mod bitfoo;
 pub use crate::bitfoo::BitFoo;
 
