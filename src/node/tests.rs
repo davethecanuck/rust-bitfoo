@@ -23,8 +23,8 @@ fn node_index_l1() {
     assert_eq!(node.index.is_runs_empty(), true);
 
     // Set a few bits, including the ends of the level 1 node
-    // (256 * 64 bits)
-    let bits = vec![0_u64, 2, 128, 64*256-1];
+    // (64 * 64 bits)
+    let bits = vec![0_u64, 2, 128, 64*64-1];
     let keys:Vec<u8> = bits.iter().map(|b| Addr::new(*b).key(1)).collect();
 
     for b in &bits {
@@ -39,8 +39,8 @@ fn node_index_l1() {
     assert_eq!(node.index.is_runs_full(), false);
     
     // Run through all of the level 1 node bits and check state
-    for k in 0_u8..=255 {    // child keys
-        for b in 0..=63 { // words at each key
+    for k in 0_u8..=63 {    // child keys
+        for b in 0..=63 {  // words at each key
             let bitno:u64 = (k as u64)*64 + b;
             let addr = Addr::new(bitno);
             assert_eq!(node.index.is_node(&addr), keys.contains(&k));
@@ -52,7 +52,7 @@ fn node_index_l1() {
 fn node_clear_all_l1() {
     // Clear all
     let mut node = Node::new(1);
-    for k in 0_u8..=255 {
+    for k in 0_u8..=63 {
         for b in 0..=63 { 
             let bitno:u64 = (k as u64)*64 + b;
             let addr = Addr::new(bitno);
@@ -73,25 +73,30 @@ fn node_clear_all_l1() {
 
 #[test]
 fn node_set_all_l1() {
-    // Set all
+    // Set all bits on level 1 node
     let mut node = Node::new(1);
-    for k in 0_u8..=255 {
-        for b in 0..=63 { 
-            let bitno:u64 = (k as u64)*64 + b;
-            let addr = Addr::new(bitno);
+    let mut addr = Addr::new(0);
+    let max = Addr::mask(1) as u8;
+
+    for k in 0_u8..=max {
+        addr.set(1, k);
+        for b in 0..=max { 
+            addr.set(0, b);
             node.set(&addr);
 
-            // Up to the last bit of the word, the node 
-            // should be marked as set. But after the 
-            // 64th bit is set, we clear the nodes vec
-            // and set it as a run instead
-            if b < 63 {
-                assert_eq!(node.index.is_node(&addr), true);
-                assert_eq!(node.index.is_run(&addr), false);
-            }
-            else {
+            // Up to the last bit of the word, the node should be marked as set. 
+            // But after the 64th bit is set, we clear the nodes vec and 
+            // set it as a run instead
+            println!("k={} b={} bitno={:x} node={:?}", k, b, addr.bitno(), node);
+            // EYE node.set on k=63 is adding bit vectors instead of updating the 
+            // correct Content::Bits node
+            if b == max {
                 assert_eq!(node.index.is_node(&addr), false);
                 assert_eq!(node.index.is_run(&addr), true);
+            }
+            else {
+                assert_eq!(node.index.is_node(&addr), true);
+                assert_eq!(node.index.is_run(&addr), false);
             }
         }
     }
@@ -119,19 +124,26 @@ fn set_clear_and_index() {
         // Test some boundary bits in each node level
         let mut node = Node::new(level);
         let input_bits = vec![0_u64, 1,  
-            Addr::child_cardinality(level), 
-            Addr::child_cardinality(level) + 1, 
+            Addr::child_max_bit(level), 
+            Addr::child_max_bit(level) + 1, 
             Addr::max_bit(level)];
-        println!("set_clear_and_index: level={} child_cardinality={:x} max_bit={:x}", 
-            level, Addr::child_cardinality(level), Addr::max_bit(level));
-        println!("    node={:?}", node);
+        println!("set_clear_and_index: level={} child_max_bit={:x} max_bit={:x}", 
+            level, Addr::child_max_bit(level), Addr::max_bit(level));
+        println!("    node={:#?}", node);
 
         for bitno in input_bits {
+            println!("================================");
             println!("Testing bit={:x}", bitno);
             assert_eq!(false, node[bitno]);
+
+            println!(" 1. PRE-SET:   node={:#?}", node);
             node.set(&Addr::new(bitno));
-            assert_eq!(true, node[bitno]);
+            println!(" 2. AFTER-SET:   node={:#?}", node);
+            //assert_eq!(true, node[bitno]);
+            assert_eq!(true, node.get(&Addr::new(bitno)));
+
             node.clear(&Addr::new(bitno));
+            println!(" 3. CLEAR: node={:#?}", node);
             assert_eq!(false, node[bitno]);
         }
     }
@@ -139,9 +151,10 @@ fn set_clear_and_index() {
 
 #[test]
 fn iter_bits() {
-    // Set bits in the 0 - 256*64 range (raw bits)
-    let in_bits = vec![0_u64, 1, 0x3f, 0x40, 0x3fff];
-    let mut node = Node::new(1);
+    // Set bits in the 0 - 64*64 range (raw bits)
+    let level = 1;
+    let in_bits = vec![0_u64, 1, 0x3f, 0x40, Addr::max_bit(level)];
+    let mut node = Node::new(level);
     println!("iter_bits: in_bits={:?}", in_bits);
 
     for bitno in &in_bits {
@@ -156,7 +169,6 @@ fn iter_bits() {
     for bitno in node.iter() {
         out_bits.push(bitno);
     }
-
     assert_eq!(in_bits, out_bits);
 }
 
@@ -185,8 +197,7 @@ fn iter_run() {
 #[test]
 fn iter_node() {
     let mut node = Node::new(addr::MAX_LEVEL);
-    let in_bits = vec![0_u64, 0x3f, 0x40, 0x3f_ff, 0x40_00, 
-        0x3f_ff_ff, 0x40_00_00, u64::MAX];
+    let in_bits = vec![0_u64, 0x3f, 0x40, 0x0f_ff, 0x10_00, u64::MAX];
 
     for b in &in_bits {
         node.set(&Addr::new(*b));

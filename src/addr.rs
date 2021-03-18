@@ -3,23 +3,28 @@ use std::fmt;
 // Constant to get bit shift and mask for each 
 // level of the tree
 // (bit_offset, mask, max_bit, node_level)
-const LEVEL_PARAM:[(u64, u64, u64, u8);9] = [
-    (0,     0x3f, 0x3f, 0),        // 6 bits for within the leaf node
-    (6+0*8, 0xff, 0x3f_ff, 1),     // 8 bits for all other levels
-    (6+1*8, 0xff, 0x3f_ff_ff, 2),
-    (6+2*8, 0xff, 0x3f_ff_ff_ff, 3),
-    (6+3*8, 0xff, 0x3f_ff_ff_ff_ff, 4),
-    (6+4*8, 0xff, 0x3f_ff_ff_ff_ff_ff, 5),
-    (6+5*8, 0xff, 0x3f_ff_ff_ff_ff_ff_ff, 6),
-    (6+6*8, 0xff, 0x3f_ff_ff_ff_ff_ff_ff_ff, 7),
-    (6+7*8, 0xff, 0xff_ff_ff_ff_ff_ff_ff_ff, 8),
+const LMASK: u64 = 0b_00_11_1111;
+const LBITS: u64 = 6;
+
+const LEVEL_PARAM:[(u64, u64, u64, u8);11] = [
+    (0 *  LBITS, LMASK, u64::MAX >> (64 - 1 * LBITS), 0),
+    (1 *  LBITS, LMASK, u64::MAX >> (64 - 2 * LBITS), 1),
+    (2 *  LBITS, LMASK, u64::MAX >> (64 - 3 * LBITS), 2),
+    (3 *  LBITS, LMASK, u64::MAX >> (64 - 4 * LBITS), 3),
+    (4 *  LBITS, LMASK, u64::MAX >> (64 - 5 * LBITS), 4),
+    (5 *  LBITS, LMASK, u64::MAX >> (64 - 6 * LBITS), 5),
+    (6 *  LBITS, LMASK, u64::MAX >> (64 - 7 * LBITS), 6),
+    (7 *  LBITS, LMASK, u64::MAX >> (64 - 8 * LBITS), 7),
+    (8 *  LBITS, LMASK, u64::MAX >> (64 - 9 * LBITS), 8),
+    (9 *  LBITS, LMASK, u64::MAX >> (64 - 10 * LBITS), 9), // 10 * LBITS = 60
+    (10 * LBITS, LMASK, u64::MAX, 10),
 ];
 pub const MAX_LEVEL:u8 = (LEVEL_PARAM.len() - 1) as u8;
 
 // Container giving key by level for a u64 bitno
 pub struct Addr{
     pub node_level: u8,
-    key: [u8;LEVEL_PARAM.len()],
+    pub key: [u8;LEVEL_PARAM.len()],
 }
 
 // Public class level functions
@@ -61,7 +66,7 @@ impl Addr {
     }
 
     // Return the cardinality of a child node from this level
-    pub fn child_cardinality(level: u8) -> u64 {
+    pub fn child_max_bit(level: u8) -> u64 {
         match level {
             1..=MAX_LEVEL => LEVEL_PARAM[(level-1) as usize].2,
             _ => 0,
@@ -82,8 +87,8 @@ impl Addr {
     // Convert Addr to bit numberr
     pub fn bitno(&self) -> u64 {
         let mut bitno:u64 = 0;
-        for i in 0..=self.node_level {
-            bitno += (self.key[i as usize] as u64) << Addr::offset(i);
+        for level in 0..=self.node_level {
+            bitno += (self.key[level as usize] as u64) << Addr::offset(level);
         }
         bitno
     }
@@ -103,7 +108,7 @@ impl Addr {
     pub fn max_bitno(&self, level: u8) -> u64 {
         match level {
             1..=MAX_LEVEL => {
-                self.min_bitno(level) + Addr::child_cardinality(level)
+                self.min_bitno(level) + Addr::child_max_bit(level)
             },
             _ => 0,
         }

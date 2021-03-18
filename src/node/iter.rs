@@ -1,4 +1,4 @@
-use crate::{Addr,KeyState,KeyIndexIterator};
+use crate::{Addr,KeyState,KeyIndexIterator,BitVec64,BitVec64Iterator};
 use std::iter::Iterator;
 use super::Node;
 use super::Content;
@@ -49,8 +49,7 @@ impl Iterator for RunIterator {
 // Iterator for raw level 0 bits
 struct BitsIterator {
     start_bit: u64, 
-    raw_bits: u64,
-    curr_bit: u64,
+    iter: BitVec64Iterator,
 }
 
 impl BitsIterator {
@@ -62,8 +61,7 @@ impl BitsIterator {
 
         BitsIterator {
             start_bit, 
-            raw_bits,
-            curr_bit: 0, // This is relative to the start_bit
+            iter: BitVec64(raw_bits).iter(),
         }
     }
 }
@@ -72,25 +70,11 @@ impl Iterator for BitsIterator {
     type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.curr_bit > 63 {
-            // Last iteration incremented us to the end of the word
-            None
-        }
-        else {
-            let word = self.raw_bits >> self.curr_bit;
-            let trailing_zeros = word.trailing_zeros() as u64;
-            let word_bit = self.curr_bit + trailing_zeros;
-
-            if word_bit > 63 {
-                // 0's all the way to the most-significant-bit
-                return None
-            }
-            else {
-                // Increment our current bit before returning
-                let retval = self.start_bit + word_bit;
-                self.curr_bit = word_bit + 1;
-                Some(retval)
-            }
+        match self.iter.next() {
+            Some(bitno) => {
+                Some(self.start_bit + bitno as u64)
+            },
+            _ => None,
         }
     }
 }
@@ -99,7 +83,7 @@ impl Iterator for BitsIterator {
 pub struct NodeIterator<'a> {
     addr: Addr,
     node: &'a Node,
-    index_iter: KeyIndexIterator<'a>,
+    index_iter: KeyIndexIterator,
     child_iter: ChildIterator<'a>,
 }
 
@@ -130,7 +114,7 @@ impl<'a> NodeIterator<'a> {
                 // Iterator for child node
                 match &self.node.content {
                     Content::Bits(vec) => {
-                        let child_bits = vec[offset];
+                        let BitVec64(child_bits) = vec[offset];
                         ChildIterator::Bits(
                             BitsIterator::new(&self.addr, key, child_bits)
                         )

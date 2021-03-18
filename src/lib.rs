@@ -3,8 +3,8 @@ mod macros;
 mod bitfoo;
 pub use crate::bitfoo::BitFoo;
 
-mod bitvec256;
-pub use bitvec256::{BitVec256,BitVec256Iterator};
+mod bitvec64;
+pub use bitvec64::{BitVec64,BitVec64Iterator};
 
 mod addr;
 pub use addr::Addr;

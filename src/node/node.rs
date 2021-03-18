@@ -1,10 +1,10 @@
 use std::fmt;
-use crate::{Addr,KeyIndex,KeyState};
+use crate::{Addr,KeyIndex,KeyState,BitVec64};
 use crate::node::iter::NodeIterator;
 use crate::addr;
 
 pub enum Content {
-    Bits(Vec<u64>),
+    Bits(Vec<BitVec64>),
     Nodes(Vec<Node>),
 }
 
@@ -17,7 +17,7 @@ impl fmt::Debug for Content {
                 write!(f, "Bits[len={}]:[ ", v.len())?;
                 for (i, element) in v.iter().enumerate().rev() {
                     if i < 3 || i >= (v.len() - 3) {
-                        write!(f, "{}:[{:#b}] ", i, element)?;
+                        write!(f, "{}:[{:?}] ", i, element)?;
                     }
                     else if i == 3 {
                         write!(f, "{}", ".....".to_string())?;
@@ -53,7 +53,7 @@ impl Node {
     // Constructor
     pub fn new(level: u8) -> Self {
         // Level 1 contains a list of 64-bit (2^6) chunks (which are level 0)
-        // Level 2+ contains up to 256 (2^8) child nodes
+        // Level 2+ contains up to 64 (2^1) child nodes
         let content = match level {
             1 => Content::Bits(Vec::with_capacity(1)),
             2..=addr::MAX_LEVEL => Content::Nodes(Vec::with_capacity(1)),
@@ -102,11 +102,14 @@ impl Node {
     // Return the state of the bit for this address
     pub fn get(&self, addr: &Addr) -> bool {
         match self.index.search(addr) {
-            KeyState::Run(_key) => true,
+            KeyState::Run(_key) => {
+                true
+            },
             KeyState::Node(_key, offset) => {
                 match &self.content {
                     Content::Bits(vec) => {
-                        vec[offset] & 0x1 << addr.key(0) > 0
+                        let BitVec64(bits) = vec[offset];
+                        (bits & (1 << addr.key(0))) > 0
                     },
                     Content::Nodes(vec) => {
                         vec[offset].get(addr)
@@ -147,12 +150,14 @@ impl Node {
 // structure elements as mutable references
 impl Node {
     // Set a bit for a 'Bits' type content
-    fn set_bits(index: &mut KeyIndex, vec: &mut Vec<u64>, addr: &Addr) {
+    fn set_bits(index: &mut KeyIndex, vec: &mut Vec<BitVec64>, addr: &Addr) {
         match index.search(addr) {
-            KeyState::Run(_key) => (),  
+            KeyState::Run(_key) => (),
             KeyState::Node(_key, offset) => {
                 // Update existing bitmask
-                let newbits = vec[offset] | 0x1 << addr.key(0);
+                let BitVec64(bits) = vec[offset];
+                let newbits = bits | 0x1 << addr.key(0);
+
                 if newbits == u64::MAX {
                     // Run detected - remove node and update index
                     vec.remove(offset);
@@ -160,12 +165,12 @@ impl Node {
                 }
                 else {
                     // Just save the bits
-                    vec[offset] = newbits;
+                    vec[offset] = BitVec64(newbits);
                 }
             },
             KeyState::Missing(_key, offset) => {
                 // Just set - no run possible
-                vec.insert(offset, 0x1 << addr.key(0));
+                vec.insert(offset, BitVec64(0x1 << addr.key(0)));
                 index.set(addr);
             },
         }
@@ -195,20 +200,21 @@ impl Node {
     }
     
     // Clear a bit for a 'Bits' type content
-    fn clear_bits(index: &mut KeyIndex, vec: &mut Vec<u64>, addr: &Addr) {
+    fn clear_bits(index: &mut KeyIndex, vec: &mut Vec<BitVec64>, addr: &Addr) {
         match index.search(addr) {
             KeyState::Run(_key) => {
                 // It's not longer a run, so need to add a u64 to our 
                 // content vector with all bits set but the cleared bit.
                 // This will be the only element in the vector (offset=0)
                 let bitmask = !(0x1 << addr.key(0));  
-                vec.push(bitmask);
+                vec.push(BitVec64(bitmask));
                 index.set(addr); 
             },
             KeyState::Node(_key, offset) => {
                 // Update existing bitmask
                 let bitmask = !(0x1 << addr.key(0));  
-                let newbits = vec[offset] & bitmask;
+                let BitVec64(origbits) = vec[offset];
+                let newbits = origbits & bitmask;
 
                 if newbits == 0 {
                     // Node is all 0's, so remove
@@ -217,7 +223,7 @@ impl Node {
                 }
                 else {
                     // Just save the bits
-                    vec[offset] = newbits;
+                    vec[offset] = BitVec64(newbits);
                 }
             },
             KeyState::Missing(_key, _offset) => (), // No-op to clear all 0's

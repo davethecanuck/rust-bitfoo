@@ -1,9 +1,10 @@
 #[cfg(test)]
 use crate::Addr;
+use crate::addr;
 
 #[test]
 fn bitno_to_addr() {
-    for bitno in vec![0, 1, 0x3f_ff, 0x3f_ff_ff, u64::MAX] {
+    for bitno in vec![0, 1, 0x3f, 0x40, 0x3f_ff, 0x3f_ff_ff, u64::MAX] {
         let addr = Addr::new(bitno);
         assert_eq!(bitno, addr.bitno());
     }
@@ -26,14 +27,14 @@ fn clone() {
 
 #[test]
 fn min_max() {
-    for level in 1_u8..=8 {
+    for level in 1_u8..=addr::MAX_LEVEL {
         for b in &[0_u64, 1, 0x3f, 0x40, 0x3f_fe, 0x3f_ff, 
                 0x3f_ff_ff, 0x3f_ff_ff_ff, u64::MAX] {  
             // Minimum bitno is where all of the lower bits are 0 below
             // our level. Max is this plus the cardinality of this level.
             let addr = Addr::new(*b);
             let expected_min = (u64::MAX << Addr::offset(level)) & addr.bitno();
-            let expected_max = expected_min + Addr::child_cardinality(level);
+            let expected_max = expected_min + Addr::child_max_bit(level);
             assert_eq!(addr.min_bitno(level), expected_min);
             assert_eq!(addr.max_bitno(level), expected_max);
         }
@@ -43,8 +44,8 @@ fn min_max() {
 #[test]
 fn keys_and_level() {
     // Level 1 addresses
-    for level in 0_u8..=8 {
-        let min_bitno = Addr::child_cardinality(level) + 1;
+    for level in 0_u8..=addr::MAX_LEVEL {
+        let min_bitno = Addr::child_max_bit(level) + 1;
         check_key_and_level(level, min_bitno);
         let max_bitno = Addr::max_bit(level);
         check_key_and_level(level, max_bitno);

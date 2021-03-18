@@ -8,7 +8,7 @@ use crate::BitFoo;
 fn sizeof() {
     let size = std::mem::size_of::<BitFoo>();
     println!("Size of BitFoo is {} bytes", size);
-    assert_eq!(size, 104);
+    assert_eq!(size, 56);
 }
 
 #[test]

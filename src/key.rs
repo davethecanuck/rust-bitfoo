@@ -1,11 +1,11 @@
-use crate::{Addr,BitVec256,BitVec256Iterator};
+use crate::{Addr,BitVec64,BitVec64Iterator};
 use std::iter::Iterator;
 
 #[derive(Debug)]
 pub struct KeyIndex {
     pub level: u8,
-    pub nodes: BitVec256, // Child nodes in the tree
-    pub runs:  BitVec256, // Child nodes that are all 1's (all set)
+    pub nodes: BitVec64, // Child nodes in the tree
+    pub runs:  BitVec64, // Child nodes that are all 1's (all set)
 }
 
 #[derive(Debug)]
@@ -21,8 +21,8 @@ impl KeyIndex {
     pub fn new(level: u8) -> Self {
         KeyIndex {
             level,
-            nodes: BitVec256::new(),
-            runs: BitVec256::new(),
+            nodes: BitVec64(0),
+            runs: BitVec64(0),
         }
     }
     
@@ -143,15 +143,20 @@ impl KeyIndex {
 
 // Iterator over index returns the sequence
 // of KeyState's
-pub struct KeyIndexIterator<'a> {
-    node_iter: BitVec256Iterator<'a>,
+pub struct KeyIndexIterator {
+    node_iter: BitVec64Iterator,
     node_key: Option<u8>,
     node_offset: usize,
-    run_iter: BitVec256Iterator<'a>,
+    run_iter: BitVec64Iterator,
     run_key: Option<u8>,
 }
 
-impl<'a> Iterator for KeyIndexIterator<'a> {
+/*/
+EYE iterator is failing last bit - 
+- review Addr vs master branch
+*/
+
+impl<'a> Iterator for KeyIndexIterator {
     type Item = KeyState;
 
     fn next(&mut self) -> Option<KeyState> {
