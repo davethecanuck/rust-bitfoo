@@ -9,7 +9,7 @@ pub const MAX_BIT:u8 = 63 as u8;
 pub struct BitVec64(pub u64);
 
 // Public interface
-// EYE - panic on bitno > MAX_BIT?
+// NOTE - perhaps panic on bitno > MAX_BIT?
 impl BitVec64 {
     pub fn set(&mut self, bitno: u8) {
         self.0 |= 1 << bitno;
@@ -68,15 +68,6 @@ impl BitVec64 {
         Err(offset)
     }
 }
-
-// Clone interface
-/* EYE - might use derived clone 
-impl Clone for BitVec64 {
-    fn clone(&self) -> BitVec64 {
-        BitVec64(self.0)
-    }
-}
-*/
 
 // Debug interface
 impl fmt::Debug for BitVec64 {

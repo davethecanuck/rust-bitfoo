@@ -151,11 +151,6 @@ pub struct KeyIndexIterator {
     run_key: Option<u8>,
 }
 
-/*/
-EYE iterator is failing last bit - 
-- review Addr vs master branch
-*/
-
 impl<'a> Iterator for KeyIndexIterator {
     type Item = KeyState;
 

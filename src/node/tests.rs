@@ -11,7 +11,7 @@ fn simple_set_get() {
         let addr = Addr::new(*bitno);
         node.set(&addr);
         assert_eq!(node.get(&addr), true);
-        println!("Set bitno={:#x}: node={:#?}", bitno, node);
+        assert_eq!(node[*bitno], true);
     }
 }
 
@@ -87,9 +87,6 @@ fn node_set_all_l1() {
             // Up to the last bit of the word, the node should be marked as set. 
             // But after the 64th bit is set, we clear the nodes vec and 
             // set it as a run instead
-            println!("k={} b={} bitno={:x} node={:?}", k, b, addr.bitno(), node);
-            // EYE node.set on k=63 is adding bit vectors instead of updating the 
-            // correct Content::Bits node
             if b == max {
                 assert_eq!(node.index.is_node(&addr), false);
                 assert_eq!(node.index.is_run(&addr), true);
@@ -127,23 +124,12 @@ fn set_clear_and_index() {
             Addr::child_max_bit(level), 
             Addr::child_max_bit(level) + 1, 
             Addr::max_bit(level)];
-        println!("set_clear_and_index: level={} child_max_bit={:x} max_bit={:x}", 
-            level, Addr::child_max_bit(level), Addr::max_bit(level));
-        println!("    node={:#?}", node);
 
         for bitno in input_bits {
-            println!("================================");
-            println!("Testing bit={:x}", bitno);
             assert_eq!(false, node[bitno]);
-
-            println!(" 1. PRE-SET:   node={:#?}", node);
             node.set(&Addr::new(bitno));
-            println!(" 2. AFTER-SET:   node={:#?}", node);
-            //assert_eq!(true, node[bitno]);
-            assert_eq!(true, node.get(&Addr::new(bitno)));
-
+            assert_eq!(true, node[bitno]);
             node.clear(&Addr::new(bitno));
-            println!(" 3. CLEAR: node={:#?}", node);
             assert_eq!(false, node[bitno]);
         }
     }
@@ -155,13 +141,10 @@ fn iter_bits() {
     let level = 1;
     let in_bits = vec![0_u64, 1, 0x3f, 0x40, Addr::max_bit(level)];
     let mut node = Node::new(level);
-    println!("iter_bits: in_bits={:?}", in_bits);
 
     for bitno in &in_bits {
         let addr = Addr::new(*bitno);
-        println!("    iter_bits  SET1: bitno={:x} addr={:?}", bitno, addr);
         node.set(&addr);
-        println!("    iter_bits  SET2: node={:?}", node);
     }
    
     // Iterate and see if we get out the same thing
@@ -207,6 +190,5 @@ fn iter_node() {
     for b in node.iter() {
         out_bits.push(b);
     }
-    //println!("node is {:?}", node);
     assert_eq!(in_bits, out_bits);
 }

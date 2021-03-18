@@ -20,13 +20,11 @@ fn set_and_get() {
     // Inserting in reverse should result in same output
     for b in in_bits.iter().rev() {
         bv.set(*b);
-        println!("iter() SET bit {:x}", b);
     }
 
     let mut out_bits:Vec<u64> = Vec::new();
     for b in bv.iter() {
         out_bits.push(b);
-        println!("iter() GET bit {:x}", b);
     }
     assert_eq!(in_bits, out_bits);
 

@@ -102,23 +102,18 @@ impl Node {
     // Return the state of the bit for this address
     pub fn get(&self, addr: &Addr) -> bool {
         match self.index.search(addr) {
-            KeyState::Run(_key) => {
-                true
-            },
+            KeyState::Missing(_key, _offset) => false,
+            KeyState::Run(_key) => true,
             KeyState::Node(_key, offset) => {
                 match &self.content {
                     Content::Bits(vec) => {
-                        let BitVec64(bits) = vec[offset];
-                        (bits & (1 << addr.key(0))) > 0
+                        vec[offset].get(addr.key(0))
                     },
                     Content::Nodes(vec) => {
                         vec[offset].get(addr)
                     }
                 }
             },
-            KeyState::Missing(_key, _offset) => {
-                false
-            }
         }
     }
 
